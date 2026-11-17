@@ -46,6 +46,10 @@ MON_OPEN_DATA_PAGE = "https://www.mon.bg/mon/dostap-do-informatsiya/otvoreni-dan
 # The national open data portal's API: we send it a method name and get JSON back
 PORTAL_API = "https://data.egov.bg/api/"
 
+# The ministry's profile id on the portal, as found on mon.bg on 17 November 2026.
+# Used only when mon.bg can't be reached, so the app still starts
+KNOWN_MINISTRY_ID = "a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"
+
 # Both are public government websites, so we can say honestly who we are
 headers = {"User-Agent": "alex-school-results (learning project)"}
 
@@ -325,7 +329,8 @@ def town_choices(exam_files, choice, region):
     Cities ("ГР.") come before villages ("С.") because of the alphabetical order
     """
     _, table = load_choice(exam_files, choice)
-    if region != ALL_REGIONS:
+    # An empty region box means the same as "All regions"
+    if region and region != ALL_REGIONS:
         table = table[table["Region"] == region]
     towns = table[["Town", "Region"]].drop_duplicates()
     return [ALL_TOWNS] + sorted(town_label(row.Town, row.Region) for row in towns.itertuples())
@@ -490,6 +495,8 @@ def write_overview(exam_files, choice, region):
     straight away, then stream the model's overview of them as it is written.
     Each step yields the two tables and the text so far
     """
+    # An empty region box means the same as "All regions", as on the Schools tab
+    region = region or ALL_REGIONS
     kind, table = load_choice(exam_files, choice)
     bel_students, bel_average, second_students, second_average = RESULT_COLUMNS[kind]
     if region != ALL_REGIONS:
@@ -521,6 +528,7 @@ def write_overview(exam_files, choice, region):
         return
     yield towns, schools, f"*{MODEL} is writing the overview - this takes 1 to 3 minutes on this computer...*"
 
+    text = ""
     try:
         stream = ollama.chat(
             model = MODEL,
@@ -534,12 +542,13 @@ def write_overview(exam_files, choice, region):
                 "num_predict": 900
             }
         )
-        text = ""
         for chunk in stream:
             text += chunk.message.content
             yield towns, schools, text
-    except (ollama.ResponseError, ConnectionError) as error:
-        yield towns, schools, f"The model stopped with an error: {error}"
+    except Exception as error:
+        # Any failure (Ollama closed, a timeout...): say so on the page, below what was
+        # written so far, instead of Gradio's generic "Error"
+        yield towns, schools, f"{text}\n\n*The model stopped with an error: {type(error).__name__}: {error}*"
 
 
 def build_page(exam_files, regions):
@@ -599,17 +608,30 @@ def build_page(exam_files, regions):
                 overview_text = gr.Markdown()
 
         filters = [exam, region, town, search, rank_by]
-        # A new exam or region changes which towns are in the list
-        exam.change(refresh_towns, [exam, region, town], town)
-        region.change(refresh_towns, [exam, region, town], town)
-        # Each button first switches to its tab, then does its work
-        show_button.click(lambda: gr.Tabs(selected="schools"), None, tabs, api_name=False).then(
-            show, filters, [summary, results], api_name="show")
-        search.submit(show, filters, [summary, results], api_name=False)
+        shown = [summary, results]
+
+        def show_schools_tab():
+            return gr.Tabs(selected="schools")
+
+        # A new exam or region changes which towns are in the list, then shows the new results
+        exam.change(refresh_towns, [exam, region, town], town, api_name=False).then(
+            show, filters, shown, api_name=False)
+        region.change(refresh_towns, [exam, region, town], town, api_name=False).then(
+            show, filters, shown, api_name=False)
+        # Picking a town or a ranking also shows the new results straight away.
+        # .input (instead of .change) reacts only to you, not to refresh_towns resetting the town,
+        # which would show the results twice
+        town.input(show, filters, shown, api_name=False)
+        rank_by.input(show, filters, shown, api_name=False)
+        # The button and Enter in the search box first switch to the Schools tab, then show the results
+        show_button.click(show_schools_tab, None, tabs, api_name=False).then(
+            show, filters, shown, api_name="show")
+        search.submit(show_schools_tab, None, tabs, api_name=False).then(
+            show, filters, shown, api_name=False)
         overview_button.click(lambda: gr.Tabs(selected="top"), None, tabs, api_name=False).then(
             overview, [exam, region], [top_towns, top_schools, overview_text], api_name="overview")
         # Show the default results as soon as the page opens
-        page.load(show, filters, [summary, results], api_name=False)
+        page.load(show, filters, shown, api_name=False)
     return page
 
 
@@ -620,6 +642,12 @@ def main():
     print(f"Reading {MON_OPEN_DATA_PAGE} ...")
     try:
         ministry_id = find_ministry_on_portal()
+    except (requests.exceptions.RequestException, RuntimeError) as error:
+        # mon.bg only tells us where the data is: if it's down, use the id we found there before
+        print(f"Couldn't read mon.bg ({error}) - using the ministry's id found on 17 November 2026")
+        ministry_id = KNOWN_MINISTRY_ID
+
+    try:
         print("Asking data.egov.bg for the ministry's exam results...")
         exam_files = list_exam_files(find_exam_datasets(ministry_id))
         if not exam_files:
@@ -629,16 +657,24 @@ def main():
         # Schools abroad are missing from some years, so make sure they're in the list
         first_kind, first_file = next(iter(exam_files.values()))
         regions = sorted(set(load_results(first_kind, first_file)["Region"]) | {ABROAD})
-    except (requests.exceptions.RequestException, RuntimeError) as error:
-        print(f"Couldn't get the data: {error}")
+        page = build_page(exam_files, regions)
+    except Exception as error:
+        # Anything else, like the portal changing the layout of its data:
+        # a clear message instead of a long Python error
+        print(f"Couldn't get the data from data.egov.bg: {type(error).__name__}: {error}")
         sys.exit(1)
 
     print(f"Found {len(exam_files)} results files, for example: {', '.join(list(exam_files)[:3])}")
+    # If the ministry renames or moves a dataset, that exam disappears from the list: say so
+    found_exams = {choice.rsplit(" - ", 1)[0] for choice in exam_files}
+    missing = [exam for exam in EXAMS if exam not in found_exams]
+    if missing:
+        print(f"Note: no results found for {', '.join(missing)} - the ministry may have renamed or moved them")
     # The AI overview needs Ollama, but the rest of the page doesn't: just warn
     problem = ollama_problem()
     if problem:
         print(f"Note: {problem}")
-    build_page(exam_files, regions).launch(inbrowser=True)
+    page.launch(inbrowser=True)
 
 
 if __name__ == "__main__":

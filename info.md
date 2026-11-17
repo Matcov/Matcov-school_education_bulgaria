@@ -76,6 +76,12 @@ grade) for each subject. Bulgarian (`БЕЛ(ООП)`) comes first. Each student 
 subjects, or the professional qualification exam (`ДИППК`), as their 2nd compulsory exam. The script
 combines those into a single "2nd exam" average, weighted by the number of students.
 
+**Caveat:** in 3–20 schools per year (out of about 970), more students took the 2nd exam than
+Bulgarian. They are almost all vocational schools, where more students sat the professional
+qualification exam (ДИППК) than Bulgarian that session. For those schools the "2nd exam" average
+includes students who didn't sit Bulgarian. National totals are not affected (2025/2026: 49,027
+students in Bulgarian, 48,159 in the 2nd exam).
+
 Quirks the script handles:
 - **The 7th grade 2022/2023 file has a title line** above the column names. The script starts at the
   row beginning with "Област".
@@ -163,13 +169,17 @@ Top 3 schools by Bulgarian score:
 ## The script: alex_school_results.py
 
 1. **BeautifulSoup reads mon.bg's open data page** and finds the ministry's profile link on data.egov.bg.
+   If mon.bg can't be reached, the script uses the profile id found there on 17 November 2026, so it
+   still starts.
 2. **`requests` calls the portal's API** to find the 4 datasets and their yearly files (about 17
    seconds at startup).
 3. **Gradio (`gr.Blocks`) shows the page.**
    - **Inputs:** exam and school year, region, town (the list follows the region; type to
      search), a search box (school, town or municipality, in Cyrillic), and rank by Bulgarian or
      Maths/2nd exam.
-   - **"Show results" (Schools tab):** a summary with weighted averages, and the ranked table.
+   - **Schools tab:** a summary with weighted averages, and the ranked table. It updates as soon as
+     you change the exam, region, town or ranking. For the search box, press Enter or click
+     "Show results".
      - **When a town is chosen,** the summary compares it with its region and Bulgaria, and gives
        its rank among towns: for example, in НВО 7th grade 2025/2026, Варна is #2 of 66 towns in
        Bulgaria and #1 of 12 in its region.
