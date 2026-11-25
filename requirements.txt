@@ -1,0 +1,9 @@
+# The Python packages this app needs. Install them with:  pip install -r requirements.txt
+# Tested with Python 3.12 and gradio 5.49, pandas 2.3, plotly 6.4, requests 2.32,
+# beautifulsoup4 4.14 and ollama 0.6 (November 2026).
+gradio>=5.49,<6
+pandas>=2.2
+plotly>=6.0
+requests>=2.31
+beautifulsoup4>=4.12
+ollama>=0.6
