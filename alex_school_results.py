@@ -189,7 +189,7 @@ def find_exam_datasets(ministry_id):
         page += 1
 
     found = {}
-    for exam, (kind, dataset_name) in EXAMS.items():
+    for exam, (_, dataset_name) in EXAMS.items():
         matches = [dataset for dataset in datasets if tidy(dataset["name"]) == dataset_name]
         if matches:
             # Some old datasets have the same name: take the one updated most recently
