@@ -11,6 +11,9 @@ Data collected on 17 November 2026.
   covering **2,379 schools** between 2018/2019 and 2025/2026.
 - [alex_school_results.py](alex_school_results.py) shows them in a Gradio page.
   [schools/](schools/) has one CSV file per school with all its results.
+- **The results are stored in a local SQLite database,** [school_results.db](school_results.db)
+  (8.1 MB). The app starts in seconds, works offline, and contacts the government websites only when
+  you click the green **Check for new results** button.
 - **A map of the 28 regions shows strong inequality:** in the latest year, only 4 to 8 regions are
   above the national average, depending on the exam, and in the 4th and 7th grade villages score
   17–19 points below cities.
@@ -67,6 +70,8 @@ Gotchas:
 - **Keyword search (`criteria.keywords`) is unreliable.** "национално външно оценяване" returned
   air-quality bulletins. Listing the ministry's datasets and comparing names works better.
 - **Listing the 351 datasets takes about 15 seconds.** Downloading one results file takes about 1 second.
+  That's why the app keeps everything in a local database and calls the API only to fill or update
+  it (see "The database" below).
 
 ## File layouts and quirks
 
@@ -167,16 +172,25 @@ Top 3 schools by Bulgarian score:
   them.
 - **Most schools appear in only some exams,** depending on their grades: 1,149 schools have only
   НВО 4th and 7th grade; 464 have all four exams; 444 have only НВО 10th grade and ДЗИ.
-- **The files are a snapshot from 17 November 2026.** The web page always downloads fresh data.
+- **The files are a snapshot from 17 November 2026.** The copy that gets updated is the database,
+  [school_results.db](school_results.db).
 
 ## The script: alex_school_results.py
 
-1. **BeautifulSoup reads mon.bg's open data page** and finds the ministry's profile link on data.egov.bg.
-   If mon.bg can't be reached, the script uses the profile id found there on 17 November 2026, so it
-   still starts.
-2. **`requests` calls the portal's API** to find the 4 datasets and their yearly files (about 17
-   seconds at startup).
+1. **The app reads the local database,** [school_results.db](school_results.db): no internet needed.
+   - **If the database is empty** (the very first start), it fills it from the government websites,
+     once, in about a minute.
+   - **The green "Check for new results" button** does the same at any time, but downloads only the
+     files that are new or that the ministry has replaced.
+2. **Filling the database:**
+   - **BeautifulSoup reads mon.bg's open data page** and finds the ministry's profile link on
+     data.egov.bg. If mon.bg can't be reached, the script uses the profile id found there on
+     17 November 2026.
+   - **`requests` calls the portal's API** to find the 4 datasets and their yearly files (about 15
+     seconds), then downloads and cleans each file it needs (about 1 second each).
 3. **Gradio (`gr.Blocks`) shows the page.**
+   - **At the top:** how many results files the database has and when it was last checked, with the
+     green **Check for new results** button.
    - **Inputs:** exam and school year, region, town (the list follows the region; type to
      search), a search box (school, town or municipality, in Cyrillic), and rank by Bulgarian or
      Maths/2nd exam.
@@ -190,17 +204,19 @@ Top 3 schools by Bulgarian score:
      written by gemma4 through Ollama, streamed word by word. It takes 1 to 3 minutes on a CPU.
      - **The tables** are the top 5 towns and the top 5 schools for the chosen exam and region,
        ranked by the average of both subjects, with each one's distance from the area's average.
+     - **Without AI** (Ollama not running, the model missing, or an error halfway), the program
+       writes the overview itself from the same numbers, instantly, and says why.
    - **Minimum sizes,** so tiny villages and schools don't top the lists: 100 students per town
      nationally, 30 per town inside one region (with 100, most regions had only 1–2 ranked towns),
      and 10 per school.
    - **"Map of the regions" (third tab):** the 28 regions coloured by their distance from the national
      average, a bar chart with every region's exact number, and the biggest gaps. See the section
      below.
-   - **Speed:** each file is downloaded once and remembered, so opening it again is instant.
+   - **Speed:** reading one exam and year from the database takes about 20 milliseconds.
 
 Run it with `uv run education_bulgaria/alex_school_results.py` in this project, or with
 `python alex_school_results.py` from a downloaded copy (see [README.md](README.md)). Ollama is only
-needed for the AI overview; the rest of the page works without it.
+needed for the AI-written overview; without it, the program writes a plainer one.
 
 ### Lesson learned: let the code do the maths
 
@@ -210,6 +226,63 @@ points above" instead of 6.75 for Varna. Now the code calculates the difference 
 and the model only copies it: all 30 figures were correct across 3 test overviews.
 
 The model is reliable at wording; the code has to provide every number.
+
+## The database
+
+**Why:** before, every start asked the portal for its list of files (about 15 seconds), and every exam
+and year was downloaded again after each restart (about 1 second each). Without internet, or when the
+portal was down, the app couldn't start.
+
+**The file:** [school_results.db](school_results.db) is an **SQLite** database. SQLite is built into
+Python, so there's nothing to install; the whole database is one file; and it can be queried with SQL.
+
+| Table | One row per | Columns |
+|---|---|---|
+| `files` | results file, meaning one exam in one school year (25 rows) | `choice` (like "NVO 7th grade - 2025/2026"), `exam`, `school_year`, `kind` ("nvo" or "dzi"), `resource_id` (the file's id on data.egov.bg), `downloaded_at` |
+| `results` | school in each file (35,292 rows) | `choice`, `region`, `municipality`, `town`, `school`, `school_code`, `bel_students`, `bel_average`, `second_students`, `second_average` |
+| `checks` | check of the portal | `checked_at`, `new_files` (how many files were added or replaced) |
+
+- **The results are stored already cleaned:** every quirk listed above is fixed while downloading, so
+  reading needs no more work.
+- **An index on `results(choice)`** makes reading one exam and year fast.
+
+**Measured:**
+
+| | Before: from the internet | Now: from the database |
+|---|---|---|
+| Starting the app | about 15 s, just to list the files | about 1 s |
+| Opening an exam and year | about 1 s per file, after every restart | about 20 ms |
+| Without internet, or with the portal down | doesn't start | works |
+| Size | n/a | 8.1 MB |
+
+**Updating, with the green "Check for new results" button:**
+1. **The same steps as before:** mon.bg, then the portal, then the list of files (about 20 seconds).
+2. **It compares that list with the `files` table.** A file is downloaded if its exam and year are
+   missing, **or if its file id changed**, which means the ministry replaced it with a corrected
+   version.
+3. **Each file is saved in one transaction:** the old rows are deleted and the new rows and the
+   `files` row are written together. An interrupted update never leaves half a file.
+4. **Every check is logged in `checks`,** which gives the "last checked" date at the top of the page.
+
+**Tested:**
+- **The database built from all 25 files is identical to a fresh download** of each file: every
+  school, number, empty cell and column type.
+- **A second check finds nothing new** and downloads nothing.
+- **A simulated new year and a simulated corrected file:** I removed one file and changed another
+  file's id, and exactly those 2 files were downloaded, with no duplicate rows.
+- **A start with the internet switched off (simulated)** works from the database. The green button
+  then reports the connection error instead of crashing.
+- **The green button clicked in the real page** (in a background browser) reports "No new results:
+  the database is up to date" and updates the "last checked" time.
+
+**Looking inside:** any SQLite tool can open the file, for example the free
+[DB Browser for SQLite](https://sqlitebrowser.org). Or, with one line of Python from the project
+folder:
+```
+uv run python -X utf8 -c "import sqlite3; db = sqlite3.connect('education_bulgaria/school_results.db'); print(db.execute('SELECT choice, COUNT(*) FROM results GROUP BY choice ORDER BY choice LIMIT 3').fetchall())"
+```
+It prints the first 3 exams and years with their number of schools, starting with
+`('DZI (matura) - 2021/2022', 951)`.
 
 ## The map of the regions
 
