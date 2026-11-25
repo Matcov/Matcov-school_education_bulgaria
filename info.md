@@ -11,6 +11,9 @@ Data collected on 17 November 2026.
   covering **2,379 schools** between 2018/2019 and 2025/2026.
 - [alex_school_results.py](alex_school_results.py) shows them in a Gradio page.
   [schools/](schools/) has one CSV file per school with all its results.
+- **A map of the 28 regions shows strong inequality:** in the latest year, only 4 to 8 regions are
+  above the national average, depending on the exam, and in the 4th and 7th grade villages score
+  17–19 points below cities.
 
 ## Where the data is, and where it isn't
 
@@ -190,10 +193,14 @@ Top 3 schools by Bulgarian score:
    - **Minimum sizes,** so tiny villages and schools don't top the lists: 100 students per town
      nationally, 30 per town inside one region (with 100, most regions had only 1–2 ranked towns),
      and 10 per school.
+   - **"Map of the regions" (third tab):** the 28 regions coloured by their distance from the national
+     average, a bar chart with every region's exact number, and the biggest gaps. See the section
+     below.
    - **Speed:** each file is downloaded once and remembered, so opening it again is instant.
 
-Run it with `uv run education_bulgaria/alex_school_results.py`. Ollama is only needed for the AI
-overview; the rest of the page works without it.
+Run it with `uv run education_bulgaria/alex_school_results.py` in this project, or with
+`python alex_school_results.py` from a downloaded copy (see [README.md](README.md)). Ollama is only
+needed for the AI overview; the rest of the page works without it.
 
 ### Lesson learned: let the code do the maths
 
@@ -203,6 +210,70 @@ points above" instead of 6.75 for Varna. Now the code calculates the difference 
 and the model only copies it: all 30 figures were correct across 3 test overviews.
 
 The model is reliable at wording; the code has to provide every number.
+
+## The map of the regions
+
+### The borders
+
+- **Source:** [Natural Earth](https://www.naturalearthdata.com) 1:10m "Admin 1 – States, Provinces",
+  which is in the **public domain**, so it's free to republish in a public repository. (GADM, another
+  common source, doesn't allow redistribution.)
+- **The world file is 40 MB.** [bulgaria_regions.geojson](bulgaria_regions.geojson) keeps only
+  Bulgaria, which makes it **66 KB**:
+  - 28 regions with the official ISO codes BG-01 to BG-28, and about 3,400 border points in total;
+  - coordinates rounded to 4 decimals (about 10 m);
+  - each region labelled with its name **exactly as written in the ministry's data**
+    (`СОФИЯ-ГРАД`, `ВЕЛИКО ТЪРНОВО`…), so the map and the data match directly.
+- **Checked:**
+  - every region in all 25 files has a border, and every border has data;
+  - the borders run in the direction the map library expects (otherwise it colours the whole world
+    instead of the region);
+  - Sofia city and Sofia region fit together like puzzle pieces, with no overlap.
+
+### The colours
+
+Dark red → red → orange → **yellow** (the national average) → light green. The scale is centred on
+the average, so it shows the *difference* from the national average, and the colours mean the same
+thing for points (НВО) and grades (ДЗИ).
+
+The colours were measured, not picked by eye, using colour-blindness simulation (Machado 2009 model;
+ΔE is the visible colour difference, and 8 or more is "easy to tell apart"):
+
+| Scale | "Below average" vs "above average" for colour-blind readers | Darker = worse, even in black and white |
+|---|---|---|
+| Textbook diverging: dark red → pale → dark green | **ΔE 0.8, unreadable**: both ends look olive | No: both ends are dark |
+| **Chosen: lighter as results get better** | **ΔE 13.3** (deuteranopia), 17.2 (protanopia) | **Yes** |
+
+The weak point of the chosen scale: "a bit above average" and "far above average" are close
+(ΔE 6.8). That's why every value is also shown as an **exact signed number** on the bar chart and in
+the hover pop-ups.
+
+### What the map shows (latest year, both subjects)
+
+| Exam | Regions above the national average | Best region | Worst region | Gap between regions | Cities (ГР.) vs villages (С.) |
+|---|---|---|---|---|---|
+| НВО 4th grade | 8 of 28 | СОФИЯ-ГРАД (+8.90) | СЛИВЕН (−14.11) | 23.01 points | 72.27 vs 54.82: **17.45 points** |
+| НВО 7th grade | 4 of 28 | СОФИЯ-ГРАД (+13.34) | СЛИВЕН (−13.45) | 26.79 points | 49.68 vs 30.95: **18.73 points** |
+| НВО 10th grade | 6 of 28 | СОФИЯ-ГРАД (+8.21) | РАЗГРАД (−8.47) | 16.69 points | 38.20 vs 30.87: 7.33 points |
+| ДЗИ (matura) | 7 of 28 | СОФИЯ-ГРАД (+0.26) | РАЗГРАД (−0.38) | 0.64 of a grade | 4.57 vs 3.97: 0.60 of a grade |
+
+- **Why so few regions are above average:** the national average is weighted by students, and Sofia
+  city has a large share of them, with the best results. So most regions sit below the national
+  average.
+- **Schools abroad are left out of the map**, because they have no region. Some files list them under
+  ЧУЖБИНА, others under СОФИЯ-ГРАД (the school in БРАТИСЛАВА, for example); the map keeps only towns
+  starting with "ГР." or "С.".
+- **Under the map, a note explains** that the colours show differences in results, not the quality of
+  the schools: results also depend on family income, town or village, and which students sit the
+  exam.
+
+### How the map was tested
+
+- **All 25 files × 3 subjects (75 maps):** the data matches the borders and the colour range is
+  centred on the average.
+- **The real app was photographed in a background browser,** with the map tab clicked. That's how
+  three layout problems were found and fixed: a region name hidden behind the chart's label, numbers
+  touching the region names, and a colour key without signs.
 
 ## Not covered, and ideas
 

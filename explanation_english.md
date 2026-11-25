@@ -23,6 +23,9 @@ How to read it:
    the schools and towns for you.
 5. If you want, a **local AI** (the gemma4 model, running in Ollama on your PC) writes a short
    overview of the top 5 towns and schools.
+6. A **map of the 28 regions** colours each region by how far its results are from the national
+   average, from dark red (far below) to light green (far above), next to a bar chart with the
+   exact numbers.
 
 **The exams:**
 - **НВО** (national external assessment) in 4th, 7th and 10th grade: points from 0 to 100 in
@@ -55,7 +58,7 @@ How to read it:
 
 ---
 
-## 3. The settings at the top of the file (lines 43–118)
+## 3. The settings at the top of the file (lines 49–143)
 
 | Setting | What it is |
 |---|---|
@@ -70,6 +73,10 @@ How to read it:
 | `TOP` | How many towns and schools the AI overview shows (5) |
 | `MIN_TOWN_STUDENTS`, `MIN_TOWN_STUDENTS_IN_REGION`, `MIN_SCHOOL_STUDENTS` | The minimum number of students (100, 30, 10) to be ranked, so tiny villages don't win |
 | `BOM` | An invisible character that some files start with |
+| `REGION_MAP_FILE` | Where the map's region borders are: the file `bulgaria_regions.geojson` next to the script |
+| `MAP_SUBJECTS` | What the map can be coloured by: both subjects, Bulgarian, or Maths / 2nd exam |
+| `MAP_COLOURS` | The map's colours, from dark red (far below average) to light green (far above). They also get lighter, so darker always means worse |
+| `MAP_NOTE` | The line under the map: the colours show differences in results, not the quality of the schools |
 | `overview_system_prompt` | The rules the AI must follow when it writes the overview |
 
 ---
@@ -119,17 +126,28 @@ flowchart TD
         n_ollama_problem["ollama_problem()"]
     end
 
-    subgraph g_page ["5 - The web page, made by build_page()"]
+    subgraph g_map ["5 - The map"]
+        n_show_map["show_map()"]
+        n_schools_in_bulgaria["schools_in_bulgaria()"]
+        n_subject_score["subject_score()"]
+        n_load_region_map["load_region_map()<br/>with memory: @cache"]
+        n_region_map["region_map()"]
+        n_region_bars["region_bars()"]
+    end
+
+    subgraph g_page ["6 - The web page, made by build_page()"]
         n_build_page["build_page()"]
         n_show["show()"]
         n_refresh["refresh_towns()"]
         n_tab["show_schools_tab()"]
         n_overview["overview()"]
+        n_map_view["map_view()"]
     end
 
     MON[("mon.bg")]
     PORTAL[("data.egov.bg")]
     OLLAMA[("Ollama with gemma4")]
+    MAPFILE[("bulgaria_regions.geojson")]
     YOU(["You, in the browser"])
 
     %% Starting the program
@@ -157,10 +175,12 @@ flowchart TD
     n_build_page -.->|creates| n_refresh
     n_build_page -.->|creates| n_tab
     n_build_page -.->|creates| n_overview
+    n_build_page -.->|creates| n_map_view
     YOU -->|page opens, new town or ranking| n_show
     YOU -->|new exam or region| n_refresh
     YOU -->|Show results or Enter| n_tab
     YOU -->|Write AI overview| n_overview
+    YOU -->|Map tab, new exam or Colour by| n_map_view
     n_refresh -.->|then| n_show
     n_tab -.->|then| n_show
 
@@ -185,6 +205,17 @@ flowchart TD
     n_write_overview --> n_overview_messages
     n_write_overview --> OLLAMA
     n_ollama_problem --> OLLAMA
+
+    %% The map
+    n_map_view --> n_show_map
+    n_show_map --> n_load_choice
+    n_show_map --> n_schools_in_bulgaria
+    n_show_map --> n_load_region_map
+    n_show_map --> n_subject_score
+    n_show_map --> n_region_map
+    n_show_map --> n_region_bars
+    n_subject_score --> n_weighted
+    n_load_region_map --> MAPFILE
 ```
 
 ### The same thing as text: three journeys
@@ -240,6 +271,19 @@ overview()
       └─ ollama.chat()                       gemma4 writes, word by word
 ```
 
+**Journey D: you open the "Map of the regions" tab** (or change the exam, or "Colour by")
+
+```text
+map_view()
+ └─ show_map()                     the summary of the gaps + the map + the bar chart
+      ├─ load_choice() → load_results()
+      ├─ schools_in_bulgaria()                  leaves out the schools abroad
+      ├─ load_region_map()                      reads bulgaria_regions.geojson (only the first time)
+      ├─ subject_score() → weighted_average()   Bulgaria, each region, cities, villages
+      ├─ region_map()                           the coloured map
+      └─ region_bars()                          the bar chart, best at the top
+```
+
 ### Which functions talk to the outside world
 
 | Function | Talks to |
@@ -247,6 +291,7 @@ overview()
 | `find_ministry_on_portal()` | **mon.bg**, the ministry's website |
 | `call_portal()` | **data.egov.bg**, the open data portal. Every question to the portal goes through this one function. |
 | `ollama_problem()` and `write_overview()` | **Ollama** on your PC: the gemma4 AI |
+| `load_region_map()` | The file **bulgaria_regions.geojson** next to the script (on your PC, not the internet) |
 | `main()`, through `page.launch()` | **your browser** |
 
 All the other functions only work with data that is already in memory.
@@ -257,7 +302,7 @@ All the other functions only work with data that is already in memory.
 
 ### Group 1: Small helpers
 
-#### `tidy(text)`: [line 121](alex_school_results.py#L121)
+#### `tidy(text)`: [line 146](alex_school_results.py#L146)
 - **In one sentence:** makes a name easy to compare with another name.
 - **Gets:** a text. **Gives back:** the same text in lower case, with single spaces and no full stop
   at the end.
@@ -269,7 +314,7 @@ All the other functions only work with data that is already in memory.
   stop at the end.
 - **Called by:** `find_exam_datasets()`.
 
-#### `tidy_town(town)`: [line 128](alex_school_results.py#L128)
+#### `tidy_town(town)`: [line 153](alex_school_results.py#L153)
 - **In one sentence:** makes the same town look the same in every file.
 - **Examples:** `"ГР. СОФИЯ"` → `"ГР.СОФИЯ"` · `"Прага"` → `"ПРАГА"` ·
   `"СОФИЯ 11 РН КРАСНА ПОЛЯНА"` (a Sofia district) → `"ГР.СОФИЯ"`
@@ -281,7 +326,7 @@ All the other functions only work with data that is already in memory.
      "ГР.СОФИЯ".
 - **Called by:** `load_results()`, for every school.
 
-#### `to_number(text)`: [line 225](alex_school_results.py#L225)
+#### `to_number(text)`: [line 250](alex_school_results.py#L250)
 - **In one sentence:** turns a cell of the file into a number, or into `None` when there's no
   result.
 - **Examples:** `"52.4"` → `52.4` · `"3,09"` → `3.09` (decimal comma) · `""` → `None` · `"0"` → `None`
@@ -291,7 +336,7 @@ All the other functions only work with data that is already in memory.
   `return value or None`, turns `0` into `None`.
 - **Called by:** `load_results()`, for every cell.
 
-#### `weighted_average(table, count_column, average_column)`: [line 298](alex_school_results.py#L298)
+#### `weighted_average(table, count_column, average_column)`: [line 323](alex_school_results.py#L323)
 - **In one sentence:** the average over all **students**, not over schools.
 - **Why:** a school with 100 students should count more than a school with 5.
 - **Example:** school A has 100 students with an average of 60; school B has 5 students with 90.
@@ -303,13 +348,13 @@ All the other functions only work with data that is already in memory.
   school, adds it all up, and divides by the total number of students.
 - **Called by:** `rank_towns()`, `show_results()`, `write_overview()`.
 
-#### `town_label(town, region)`: [line 310](alex_school_results.py#L310)
+#### `town_label(town, region)`: [line 335](alex_school_results.py#L335)
 - **In one sentence:** builds the text shown in the Town list.
 - **Example:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **Why the region:** many villages have the same name in different regions.
 - **Called by:** `town_choices()`.
 
-#### `split_town_label(label)`: [line 318](alex_school_results.py#L318)
+#### `split_town_label(label)`: [line 343](alex_school_results.py#L343)
 - **In one sentence:** the opposite of `town_label()`: it takes the town and the region apart again.
 - **Example:** `"ГР.ВАРНА (ВАРНА)"` → `("ГР.ВАРНА", "ВАРНА")`
 - **How:** `rsplit(" (", 1)` cuts the text once, at the last `" ("`; `rstrip(")")` removes the
@@ -320,7 +365,7 @@ All the other functions only work with data that is already in memory.
 
 ### Group 2: Getting the data from the internet
 
-#### `call_portal(method, payload)`: [line 142](alex_school_results.py#L142)
+#### `call_portal(method, payload)`: [line 167](alex_school_results.py#L167)
 - **In one sentence:** sends one question to the open data portal (data.egov.bg) and returns its
   answer.
 - **Gets:** the name of the question (`method`), e.g. `"listResources"`, and its details
@@ -338,7 +383,7 @@ All the other functions only work with data that is already in memory.
   place to fix.
 - **Called by:** `find_exam_datasets()`, `list_exam_files()`, `load_results()`.
 
-#### `find_ministry_on_portal()`: [line 155](alex_school_results.py#L155)
+#### `find_ministry_on_portal()`: [line 180](alex_school_results.py#L180)
 - **In one sentence:** reads the ministry's "open data" page on mon.bg and finds the ministry's ID
   on the portal.
 - **Gets:** nothing. **Gives back:** the ID, a text like `"a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"`.
@@ -351,7 +396,7 @@ All the other functions only work with data that is already in memory.
   5. If no link is found, it raises an error.
 - **Called by:** `main()`. If mon.bg is down, `main()` uses `KNOWN_MINISTRY_ID` instead.
 
-#### `find_exam_datasets(ministry_id)`: [line 171](alex_school_results.py#L171)
+#### `find_exam_datasets(ministry_id)`: [line 196](alex_school_results.py#L196)
 - **In one sentence:** finds the ministry's 4 exam datasets (НВО 4th, 7th and 10th grade, and
   ДЗИ) among its roughly 350 datasets.
 - **Gives back:** a dictionary *exam → dataset ID*, e.g. `{"NVO 7th grade": "b56288b6-...", ...}`
@@ -365,7 +410,7 @@ All the other functions only work with data that is already in memory.
   (kind, name). We only need the name here, so the kind gets the "don't need" name `_`.
 - **Called by:** `main()`.
 
-#### `list_exam_files(exam_datasets)`: [line 201](alex_school_results.py#L201)
+#### `list_exam_files(exam_datasets)`: [line 226](alex_school_results.py#L226)
 - **In one sentence:** lists each exam's yearly files and gives each one a readable name like
   `"NVO 7th grade - 2025/2026"`.
 - **Gives back:** a dictionary *"exam - year" → (kind, file ID)*, e.g.
@@ -379,7 +424,7 @@ All the other functions only work with data that is already in memory.
   4. It sorts the files with the newest year first.
 - **Called by:** `main()`.
 
-#### `load_results(kind, resource_id)`: [line 239](alex_school_results.py#L239)
+#### `load_results(kind, resource_id)`: [line 264](alex_school_results.py#L264)
 - **In one sentence:** downloads one results file and turns it into a clean table, one row per
   school.
 - **Gets:** the kind (`"nvo"` or `"dzi"`) and the file's ID. **Gives back:** a table with the columns
@@ -407,7 +452,7 @@ All the other functions only work with data that is already in memory.
   table instantly, without downloading. Restarting the program empties the memory.
 - **Called by:** `load_choice()`, `main()`.
 
-#### `load_choice(exam_files, choice)`: [line 284](alex_school_results.py#L284)
+#### `load_choice(exam_files, choice)`: [line 309](alex_school_results.py#L309)
 - **In one sentence:** turns what you picked in the "Exam and school year" list into the results
   table, or shows an error message on the page.
 - **Gets:** the files dictionary and your choice, e.g. `"DZI (matura) - 2025/2026"`.
@@ -424,7 +469,7 @@ All the other functions only work with data that is already in memory.
 
 ### Group 3: Choosing and ranking
 
-#### `town_choices(exam_files, choice, region)`: [line 326](alex_school_results.py#L326)
+#### `town_choices(exam_files, choice, region)`: [line 351](alex_school_results.py#L351)
 - **In one sentence:** makes the list of towns for the "Town" dropdown.
 - **Gives back:** a list that starts with `"All towns"`, then the towns in alphabetical order, e.g.
   `"ГР.ВАРНА (ВАРНА)"`.
@@ -435,7 +480,7 @@ All the other functions only work with data that is already in memory.
 - **Called by:** `build_page()` (the first list) and `refresh_towns()` (when the exam or region
   changes).
 
-#### `rank_towns(table, kind, min_students)`: [line 339](alex_school_results.py#L339)
+#### `rank_towns(table, kind, min_students)`: [line 364](alex_school_results.py#L364)
 - **In one sentence:** makes a ranking of the towns, best first.
 - **Gives back:** a table with one row per town: `#`, Town, Region, Schools, Students, the two
   averages, and "Both subjects".
@@ -449,7 +494,7 @@ All the other functions only work with data that is already in memory.
 - **`min_students`:** 100 for the whole of Bulgaria, 30 inside one region.
 - **Called by:** `show_results()` (the rank of your town) and `write_overview()` (the top 5).
 
-#### `rank_schools(table, kind)`: [line 363](alex_school_results.py#L363)
+#### `rank_schools(table, kind)`: [line 388](alex_school_results.py#L388)
 - **In one sentence:** the same as `rank_towns()`, but for schools.
 - **How:**
   1. It keeps only schools with at least 10 students in each exam (`MIN_SCHOOL_STUDENTS`).
@@ -459,7 +504,7 @@ All the other functions only work with data that is already in memory.
   2. It calculates "Both subjects", sorts the schools, and numbers them.
 - **Called by:** `write_overview()`.
 
-#### `show_results(exam_files, choice, region, town, search, rank_by)`: [line 380](alex_school_results.py#L380)
+#### `show_results(exam_files, choice, region, town, search, rank_by)`: [line 405](alex_school_results.py#L405)
 - **In one sentence:** makes everything on the "Schools" tab: the summary text and the table.
 - **Gets:** your 5 choices from the page: exam, region, town, search text, and "rank by".
   **Gives back two values:** the summary (Markdown text) and the table.
@@ -481,7 +526,7 @@ All the other functions only work with data that is already in memory.
 
 ### Group 4: The AI overview
 
-#### `ollama_problem()`: [line 452](alex_school_results.py#L452)
+#### `ollama_problem()`: [line 477](alex_school_results.py#L477)
 - **In one sentence:** checks whether the AI is ready: Ollama is running and gemma4 is downloaded.
 - **Gives back:** `None` if all is fine ("no problem"), otherwise a message that says what's wrong.
 - **How:**
@@ -494,7 +539,7 @@ All the other functions only work with data that is already in memory.
   there isn't one. That's why the code reads `if problem:`.
 - **Called by:** `main()` (a warning at the start) and `write_overview()` (before asking the AI).
 
-#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [line 468](alex_school_results.py#L468)
+#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [line 493](alex_school_results.py#L493)
 - **In one sentence:** writes the "letter" to the AI: our rules plus the facts.
 - **Gives back:** a list of two messages:
   - `{"role": "system", ...}`: the rules, from `overview_system_prompt` at the top of the file.
@@ -504,7 +549,7 @@ All the other functions only work with data that is already in memory.
   keeps the Cyrillic letters readable.
 - **Called by:** `write_overview()`.
 
-#### `write_overview(exam_files, choice, region)`: [line 492](alex_school_results.py#L492)
+#### `write_overview(exam_files, choice, region)`: [line 517](alex_school_results.py#L517)
 - **In one sentence:** calculates the top 5 towns and schools, shows them, then lets gemma4 write
   the overview word by word.
 - **Special:** it's a **generator**. It uses `yield` instead of `return`, and each `yield` sends an
@@ -529,16 +574,97 @@ All the other functions only work with data that is already in memory.
 
 ---
 
-### Group 5: The web page and the start
+### Group 5: The map
 
-#### `build_page(exam_files, regions)`: [line 554](alex_school_results.py#L554)
+#### `schools_in_bulgaria(table)`: [line 579](alex_school_results.py#L579)
+- **In one sentence:** leaves out the schools abroad, which have no region on the map.
+- **How:** in Bulgaria every town starts with "ГР." (city) or "С." (village).
+  `str.startswith(("ГР.", "С."))` gives `True` for those, and the region must not be "ЧУЖБИНА". The
+  table keeps only those rows.
+- **Why:** some files list the schools abroad under ЧУЖБИНА, others under a Bulgarian region. The
+  school in БРАТИСЛАВА, for example, is listed under СОФИЯ-ГРАД, which would mix it into Sofia's
+  average.
+- **Called by:** `show_map()`.
+
+#### `subject_score(schools, kind, subject)`: [line 588](alex_school_results.py#L588)
+- **In one sentence:** the average of a group of schools in the chosen subject, weighted by
+  students.
+- **Gets:** a group of schools (one region, all cities, all villages, or the whole country), the
+  kind of exam, and the subject: "Both subjects", "Bulgarian (BEL)" or "Maths / 2nd exam".
+  **Gives back:** one number, or `None` if there are no results.
+- **How:** it calls `weighted_average()` for Bulgarian and for Maths (or the 2nd exam), then returns
+  the one you asked for. "Both subjects" is the average of the two.
+- **Example:** НВО 7th grade 2025/2026, both subjects: the whole country gives 46.87, СОФИЯ-ГРАД
+  gives 60.22.
+- **Called by:** `show_map()`.
+
+#### `load_region_map()`: [line 607](alex_school_results.py#L607)
+- **In one sentence:** reads the borders of the 28 regions from the file `bulgaria_regions.geojson`.
+- **Gives back:** the file's content as a dictionary. For each region it has the name as written in
+  the data (e.g. "ВАРНА"), the code (BG-03), the English name, and the border as a list of points.
+- **`@cache`:** like `load_results()`, it reads the file only once, the first time the map is shown.
+- **The file:** made from Natural Earth's world map, which is in the public domain, keeping only
+  Bulgaria (66 KB).
+- **Called by:** `show_map()`.
+
+#### `region_map(regions, borders, unit, limit)`: [line 615](alex_school_results.py#L615)
+- **In one sentence:** draws the map, with each region coloured by how far it is from the national
+  average.
+- **Gets:** the table of regions (name, average, difference from Bulgaria, number of schools), the
+  borders, the unit ("points" or "grade") and `limit`, the biggest difference. **Gives back:** a
+  Plotly figure, which Gradio shows on the page.
+- **How:**
+  1. `go.Choropleth(...)` is Plotly's "coloured areas" map. `featureidkey="properties.region"` tells
+     it to match each border to the data by the region's Bulgarian name.
+  2. `zmin=-limit, zmax=limit`: the colours go the same distance both ways, so the national average
+     (0) is always the middle colour, yellow.
+  3. The colour key shows "−13 … 0 = average … +13", and hovering over a region shows its exact
+     numbers.
+  4. `fitbounds="locations", visible=False` zooms in on Bulgaria and hides the rest of the world.
+- **Called by:** `show_map()`.
+
+#### `region_bars(regions, unit, limit)`: [line 647](alex_school_results.py#L647)
+- **In one sentence:** the same 28 regions as a bar chart, best at the top, with each region's
+  exact difference written next to its bar.
+- **Why:** a map is good for *where*, and bars are better for *how much*. The written numbers
+  (like `+13.34` or `−13.45`) also let you read the chart without the colours.
+- **How:** `go.Bar(..., orientation="h")` makes horizontal bars, coloured with the same
+  `MAP_COLOURS` as the map. The axis goes the same distance both ways, with 0 (the national average)
+  in the middle.
+- **Called by:** `show_map()`.
+
+#### `show_map(exam_files, choice, subject)`: [line 680](alex_school_results.py#L680)
+- **In one sentence:** makes everything on the "Map of the regions" tab: the summary of the gaps, the
+  map and the bar chart.
+- **Gets:** the chosen exam and year, and the subject from "Colour by". **Gives back three values:**
+  the summary text, the map and the bar chart.
+- **How:**
+  1. It loads the table (`load_choice()`) and leaves out the schools abroad
+     (`schools_in_bulgaria()`).
+  2. It reads the borders (`load_region_map()`). If the file is missing, it returns a clear message
+     instead of crashing.
+  3. It calculates the national average and each region's average with `subject_score()`, one region
+     at a time thanks to `groupby("Region")`, and each region's difference ("Vs Bulgaria").
+  4. It sorts the regions, finds the best and the worst, and compares cities ("ГР.") with villages
+     ("С.").
+  5. It draws the map (`region_map()`) and the bars (`region_bars()`).
+- **Example of the summary:** "Best region: СОФИЯ-ГРАД 60.22 (+13.34) · worst region: СЛИВЕН 33.43
+  (−13.45) · gap: 26.79 points", then "Cities (ГР.): 49.68 · villages (С.): 30.95 · gap: 18.73
+  points".
+- **Called by:** `map_view()` on the page.
+
+---
+
+### Group 6: The web page and the start
+
+#### `build_page(exam_files, regions)`: [line 721](alex_school_results.py#L721)
 - **In one sentence:** builds the web page (lists, buttons, tabs, tables) and decides which
   function runs when you click or change something.
 - **Gets:** the files dictionary and the list of regions. **Gives back:** the page, which `main()`
   then opens.
 - **How:**
-  1. It creates small **inner functions**: `show`, `overview` and `refresh_towns`. They remember
-     `exam_files`, so Gradio only has to pass your choices.
+  1. It creates small **inner functions**: `show`, `overview`, `refresh_towns` and `map_view`. They
+     remember `exam_files`, so Gradio only has to pass your choices.
   2. `with gr.Blocks() as page:` means everything indented below becomes part of the page.
      `gr.Row()` puts things side by side; `gr.Tabs()` and `gr.Tab()` make the two tabs.
   3. It connects the **events**: `thing.event(function, inputs, outputs)` means "when this happens,
@@ -552,6 +678,7 @@ All the other functions only work with data that is already in memory.
 | pick a town, or change "Rank schools by" | `show()` |
 | click "Show results", or press Enter in the search box | `show_schools_tab()`, then `show()` |
 | click "Write AI overview" | switch to the second tab, then `overview()` |
+| open the "Map of the regions" tab, change the exam, or change "Colour by" | `map_view()` |
 
 - **The inner functions** (created inside `build_page()`):
   - `show(choice, region, town, search, rank_by)` calls `show_results(exam_files, …)`.
@@ -559,6 +686,8 @@ All the other functions only work with data that is already in memory.
     update, so it's a generator too.
   - `refresh_towns(choice, region, current_town)` calls `town_choices()` and returns a new
     dropdown with the new list. It keeps your town if it's still in the list.
+  - `map_view(choice, subject)` calls `show_map(exam_files, …)`. The map is drawn when you open its
+    tab, because a chart drawn in a hidden tab can come out the wrong size.
   - `show_schools_tab()` returns `gr.Tabs(selected="schools")`, which means "go to the Schools
     tab".
   - A tiny `lambda`, a one-line function without a name, switches to the second tab.
@@ -568,7 +697,7 @@ All the other functions only work with data that is already in memory.
   - The Town list uses `.input`, so the results aren't shown twice when `refresh_towns()` resets
     the town.
 
-#### `main()`: [line 638](alex_school_results.py#L638)
+#### `main()`: [line 826](alex_school_results.py#L826)
 - **In one sentence:** the starting point: it gets the data ready, builds the page and opens it in
   your browser.
 - **How:**
