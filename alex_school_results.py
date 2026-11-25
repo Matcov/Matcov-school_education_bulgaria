@@ -3,11 +3,15 @@ Bulgarian school exam results: a web page that shows the official exam results o
 school in Bulgaria, published by the Ministry of Education and Science (МОН, mon.bg).
 
 How it gets the data:
-1. It reads mon.bg's open data page with BeautifulSoup and follows the ministry's link to
-   the national open data portal (data.egov.bg). The results by school are published
-   there as data files, not as pages on mon.bg.
-2. It asks the portal's API for the ministry's exam result files: one file per school year.
-3. When you pick an exam and a year, it downloads that file and shows it as a table.
+1. The results are stored in a local SQLite database, school_results.db, next to this script.
+   The app reads only this file, so it starts in a second and works without internet.
+2. The database is filled from the government's websites only when it's empty, or when you
+   click the green "Check for new results" button:
+   - it reads mon.bg's open data page with BeautifulSoup and follows the ministry's link to
+     the national open data portal (data.egov.bg), where the results by school are
+     published as data files, not as pages on mon.bg;
+   - it asks the portal's API for the ministry's exam result files (one per school year)
+     and downloads only the ones the database doesn't have yet.
 
 The exams:
 - NVO (НВО, national external assessment) in 4th, 7th and 10th grade:
@@ -18,14 +22,16 @@ The exams:
 On the page you can also pick a town, to see how it compares with its region and the
 country, and ask a local Ollama model (gemma4) for an overview of the top 5 towns and
 top 5 schools. The rankings are calculated by the code; the model only writes about them.
+When the AI isn't available, the program writes the overview itself, from the same numbers.
 
 The "Map of the regions" tab colours Bulgaria's 28 regions by how far their results are
 from the national average, from dark red (far below) to light green (far above).
 
 Before running:
 - bulgaria_regions.geojson (the region borders for the map) must be next to this script.
-- For the AI overview only: the Ollama app must be running, with the model downloaded:
-  ollama pull gemma4. The rest of the page works without it.
+  school_results.db is created and filled automatically the first time, if it's missing.
+- For the AI overview: the Ollama app must be running, with the model downloaded:
+  ollama pull gemma4. Without it, the program writes a plainer overview itself.
 
 Run it from the project folder with:
     uv run education_bulgaria/alex_school_results.py
@@ -34,7 +40,9 @@ The page opens in your browser (usually at http://127.0.0.1:7860). Press Ctrl+C 
 
 import json
 import re
+import sqlite3
 import sys
+from datetime import datetime
 from functools import cache
 from pathlib import Path
 
@@ -97,6 +105,47 @@ MIN_SCHOOL_STUDENTS = 10
 
 # Some files start with an invisible "byte order mark" character
 BOM = chr(0xFEFF)
+
+# The local database with every results file already downloaded, next to this script.
+# The app reads only this file; the government websites are contacted only when it's empty,
+# or when you click "Check for new results"
+DATABASE_FILE = Path(__file__).parent / "school_results.db"
+
+# The database's tables, in SQL. They're created the first time the file is opened:
+# - files: one row per results file (one exam in one school year), and when it was downloaded
+# - results: one row per school in each file
+# - checks: one row each time the portal was checked for new files
+DATABASE_TABLES = """
+CREATE TABLE IF NOT EXISTS files (
+    choice        TEXT PRIMARY KEY,  -- like "NVO 7th grade - 2025/2026"
+    exam          TEXT NOT NULL,     -- like "NVO 7th grade"
+    school_year   TEXT NOT NULL,     -- like "2025/2026"
+    kind          TEXT NOT NULL,     -- "nvo" (points) or "dzi" (grades)
+    resource_id   TEXT NOT NULL,     -- the file's id on data.egov.bg
+    downloaded_at TEXT NOT NULL      -- like "2026-11-25 14:05"
+);
+CREATE TABLE IF NOT EXISTS results (
+    choice          TEXT NOT NULL REFERENCES files(choice),
+    region          TEXT,
+    municipality    TEXT,
+    town            TEXT,
+    school          TEXT,
+    school_code     TEXT,
+    bel_students    INTEGER,
+    bel_average     REAL,
+    second_students INTEGER,         -- Maths (НВО) or the 2nd compulsory exam (ДЗИ)
+    second_average  REAL
+);
+CREATE INDEX IF NOT EXISTS results_by_file ON results(choice);
+CREATE TABLE IF NOT EXISTS checks (
+    checked_at TEXT NOT NULL,        -- like "2026-11-25 14:05"
+    new_files  INTEGER NOT NULL      -- how many files were added or replaced
+);
+"""
+
+# The results columns' names in the database (the page shows the names in RESULT_COLUMNS)
+DATABASE_COLUMNS = ["region", "municipality", "town", "school", "school_code",
+                    "bel_students", "bel_average", "second_students", "second_average"]
 
 # The borders of Bulgaria's 28 regions, for the map: a small file next to this script,
 # made from Natural Earth's public domain map data (naturalearthdata.com)
@@ -259,11 +308,10 @@ def to_number(text):
     return value or None
 
 
-# @cache remembers each file once it's downloaded, so going back to it is instant
-@cache
-def load_results(kind, resource_id):
+def download_results(kind, resource_id):
     """
-    Download one results file and return it as a table: one row per school
+    Download one results file from the open data portal and return it as a clean table:
+    one row per school. Used only to fill the database
     """
     rows = call_portal("getResourceData", {"resource_uri": resource_id})["data"]
 
@@ -306,18 +354,123 @@ def load_results(kind, resource_id):
     return table
 
 
+def open_database():
+    """
+    Open the database file (SQLite creates it the first time) and make sure its tables exist.
+    Whoever opens it must close it again with .close()
+    """
+    database = sqlite3.connect(DATABASE_FILE)
+    database.executescript(DATABASE_TABLES)
+    return database
+
+
+def save_results(choice, kind, resource_id, table):
+    """
+    Store one downloaded results file in the database, replacing an older copy of it
+    """
+    rows = table.set_axis(DATABASE_COLUMNS, axis=1).assign(choice=choice)
+    exam, school_year = choice.rsplit(" - ", 1)
+    database = open_database()
+    try:
+        # "with database" makes all of this one transaction: either everything is saved, or nothing
+        with database:
+            database.execute("DELETE FROM results WHERE choice = ?", (choice,))
+            rows.to_sql("results", database, if_exists="append", index=False)
+            database.execute("INSERT OR REPLACE INTO files VALUES (?, ?, ?, ?, ?, ?)",
+                             (choice, exam, school_year, kind, resource_id, datetime.now().strftime("%Y-%m-%d %H:%M")))
+    finally:
+        database.close()
+
+
+def stored_files():
+    """
+    Return a dictionary of "exam - school year" -> (kind, file id) for every file in the
+    database, in the same order as the portal list: exam by exam, newest year first
+    """
+    database = open_database()
+    try:
+        files = database.execute("SELECT choice, exam, school_year, kind, resource_id FROM files").fetchall()
+    finally:
+        database.close()
+    exam_order = list(EXAMS)
+    # First newest year first, then exam by exam: Python's sort keeps the year order inside each exam
+    files.sort(key=lambda file: file[2], reverse=True)
+    files.sort(key=lambda file: exam_order.index(file[1]) if file[1] in exam_order else len(exam_order))
+    return {choice: (kind, resource_id) for choice, _, _, kind, resource_id in files}
+
+
+def read_results(choice, kind):
+    """
+    Read one exam and year from the database, as a table with the page's column names
+    """
+    database = open_database()
+    try:
+        table = pd.read_sql("SELECT " + ", ".join(DATABASE_COLUMNS) + " FROM results WHERE choice = ? ORDER BY rowid",
+                            database, params=(choice,))
+    finally:
+        database.close()
+    table.columns = ["Region", "Municipality", "Town", "School", "School code"] + RESULT_COLUMNS[kind]
+    # Int64 shows whole numbers without ".0" and allows empty cells
+    students = RESULT_COLUMNS[kind][0::2]
+    table[students] = table[students].astype("Int64")
+    return table
+
+
+def update_database():
+    """
+    Ask the open data portal for its list of results files, and download the ones the
+    database doesn't have yet, or that the ministry has replaced with a new version.
+    Return the list of files that were added or replaced
+    """
+    try:
+        ministry_id = find_ministry_on_portal()
+    except (requests.exceptions.RequestException, RuntimeError):
+        # mon.bg only tells us where the data is: if it's down, use the id we found there before
+        ministry_id = KNOWN_MINISTRY_ID
+    print("Asking data.egov.bg for the list of results files...", flush=True)
+    portal_files = list_exam_files(find_exam_datasets(ministry_id))
+    stored = stored_files()
+    new_files = [choice for choice, file in portal_files.items() if stored.get(choice) != file]
+    for choice in new_files:
+        kind, resource_id = portal_files[choice]
+        print(f"Downloading {choice} ...", flush=True)
+        save_results(choice, kind, resource_id, download_results(kind, resource_id))
+
+    database = open_database()
+    try:
+        with database:
+            database.execute("INSERT INTO checks VALUES (?, ?)", (datetime.now().strftime("%Y-%m-%d %H:%M"), len(new_files)))
+    finally:
+        database.close()
+    return new_files
+
+
+def database_status():
+    """
+    A one-line description of the database, for the top of the page
+    """
+    database = open_database()
+    try:
+        files = database.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        last_check = database.execute("SELECT MAX(checked_at) FROM checks").fetchone()[0]
+    finally:
+        database.close()
+    return (f"**Data:** {files} results files in the local database ({DATABASE_FILE.name}) · "
+            f"last checked on data.egov.bg: {last_check or 'never'}")
+
+
 def load_choice(exam_files, choice):
     """
     Return the kind of exam ("nvo" or "dzi") and the results table for a dropdown choice,
-    with a message on the page if it can't be loaded
+    from the database, with a message on the page if it can't be read
     """
     if choice not in exam_files:
         raise gr.Error("Please choose an exam and a school year.")
-    kind, resource_id = exam_files[choice]
+    kind, _ = exam_files[choice]
     try:
-        return kind, load_results(kind, resource_id)
-    except (requests.exceptions.RequestException, RuntimeError, StopIteration) as error:
-        raise gr.Error(f"Couldn't load the results from data.egov.bg: {error}")
+        return kind, read_results(choice, kind)
+    except (sqlite3.Error, pd.errors.DatabaseError) as error:
+        raise gr.Error(f"Couldn't read the results from the database: {error}")
 
 
 def weighted_average(table, count_column, average_column):
@@ -514,6 +667,37 @@ def overview_messages(choice, kind, area, area_averages, towns, schools, min_tow
     ]
 
 
+def template_overview(area, towns, schools):
+    """
+    The overview written by the program itself, from the same numbers the AI gets.
+    Used when the AI isn't available: plainer than the AI's text, but instant and always exact
+    """
+    lines = ["## Top towns"]
+    if towns.empty:
+        lines.append(f"No town in {area} has enough students to be ranked.")
+    else:
+        lines.append(f"The best towns in {area}, ranked by the average of both subjects:")
+        for town in towns.to_dict(orient="records"):
+            lines.append(f"{town['#']}. **{town['Town']}**: {town['Both subjects']:.2f}, "
+                         f"{town['Vs area average']} the area's average")
+
+    lines += ["", "## Top schools"]
+    if schools.empty:
+        lines.append(f"No school in {area} has enough students to be ranked.")
+    else:
+        lines.append(f"The best schools in {area}, ranked by the average of both subjects:")
+        for school in schools.to_dict(orient="records"):
+            lines.append(f"{school['#']}. **{school['School']}** ({school['Town']}): {school['Both subjects']:.2f}, "
+                         f"{school['Vs area average']} the area's average")
+        # What the list has in common: the town where most of the top schools are
+        towns_count = schools["Town"].value_counts()
+        if towns_count.iloc[0] == len(schools) and len(schools) > 1:
+            lines.append(f"\nAll of the top schools are in {towns_count.index[0]}.")
+        elif towns_count.iloc[0] > len(schools) / 2:
+            lines.append(f"\nMost of the top schools are in {towns_count.index[0]}.")
+    return "\n".join(lines)
+
+
 def write_overview(exam_files, choice, region):
     """
     Rank the top towns and schools for the chosen exam and region and show them
@@ -549,7 +733,8 @@ def write_overview(exam_files, choice, region):
 
     problem = ollama_problem()
     if problem:
-        yield towns, schools, problem
+        # No AI: the program writes the overview itself, from the same numbers
+        yield towns, schools, f"{template_overview(area, towns, schools)}\n\n*Written by the program, without AI. {problem}*"
         return
     yield towns, schools, f"*{MODEL} is writing the overview - this takes 1 to 3 minutes on this computer...*"
 
@@ -571,9 +756,10 @@ def write_overview(exam_files, choice, region):
             text += chunk.message.content
             yield towns, schools, text
     except Exception as error:
-        # Any failure (Ollama closed, a timeout...): say so on the page, below what was
-        # written so far, instead of Gradio's generic "Error"
-        yield towns, schools, f"{text}\n\n*The model stopped with an error: {type(error).__name__}: {error}*"
+        # Any failure (Ollama closed, a timeout...): the program writes the overview instead,
+        # and says why, rather than leaving half a text or Gradio's generic "Error"
+        yield towns, schools, (f"{template_overview(area, towns, schools)}\n\n*Written by the program, because the AI "
+                               f"stopped with an error: {type(error).__name__}: {error}*")
 
 
 def schools_in_bulgaria(table):
@@ -742,7 +928,33 @@ def build_page(exam_files, regions):
     def map_view(choice, subject):
         return show_map(exam_files, choice, subject)
 
-    with gr.Blocks(title="Bulgarian school exam results") as page:
+    # The green button: check the portal for new files, then refresh the "Exam and school year" list.
+    # It's a generator, so the page can say "Checking..." while it works
+    def check_for_new_results(current_choice):
+        yield "*Checking data.egov.bg for new results files: this takes about 20 seconds...*", gr.update()
+        try:
+            new_files = update_database()
+        except Exception as error:
+            yield f"Couldn't check for new results: {type(error).__name__}: {error}  \n{database_status()}", gr.update()
+            return
+        # Refill the shared dictionary of files, so every part of the page sees the new ones
+        files = stored_files()
+        exam_files.clear()
+        exam_files.update(files)
+        if new_files:
+            found = f"Added {len(new_files)} new results files: {', '.join(new_files)}."
+        else:
+            found = "No new results: the database is up to date."
+        yield f"{found}  \n{database_status()}", gr.Dropdown(choices=list(exam_files), value=current_choice)
+
+    # Colour the "Check for new results" button green. White text on #1a7f37 has a contrast
+    # of 5.1:1, so it's easy to read; the darker #116329 shows when the mouse is over it
+    green_button = (
+        "#check-button { background: #1a7f37 !important; color: #ffffff !important; border-color: #1a7f37 !important; }"
+        "#check-button:hover { background: #116329 !important; border-color: #116329 !important; }"
+    )
+
+    with gr.Blocks(title="Bulgarian school exam results", css=green_button) as page:
         gr.Markdown(
             "# Bulgarian school exam results\n"
             "Official results by school from the Ministry of Education and Science (МОН), "
@@ -751,6 +963,9 @@ def build_page(exam_files, regions):
             "**DZI** (ДЗИ) = state matriculation exams (матури), May-June session, average grade from 2 to 6. "
             "**BEL** = Bulgarian language and literature, **MAT** = Maths."
         )
+        with gr.Row(equal_height=True):
+            database_info = gr.Markdown(database_status())
+            check_button = gr.Button("Check for new results", elem_id="check-button", scale=0, min_width=220)
         with gr.Row():
             exam = gr.Dropdown(choices, label="Exam and school year", value=default)
             region = gr.Dropdown([ALL_REGIONS] + regions, label="Region (област)", value=ALL_REGIONS)
@@ -771,7 +986,8 @@ def build_page(exam_files, regions):
                     f"For the chosen exam and region, ranked by the **average of both subjects**. "
                     f"Towns need at least {MIN_TOWN_STUDENTS} students in each exam ({MIN_TOWN_STUDENTS_IN_REGION} "
                     f"inside one region), and schools at least {MIN_SCHOOL_STUDENTS}. The tables come from the data; "
-                    f"the text below them is written by {MODEL} on this computer."
+                    f"the text below them is written by {MODEL} on this computer, or by the program itself "
+                    f"when the AI isn't available."
                 )
                 top_towns = gr.Dataframe(label=f"Top {TOP} towns")
                 top_schools = gr.Dataframe(label=f"Top {TOP} schools")
@@ -820,6 +1036,8 @@ def build_page(exam_files, regions):
         map_tab.select(map_view, [exam, map_subject], map_shown, api_name=False)
         exam.change(map_view, [exam, map_subject], map_shown, api_name=False)
         map_subject.input(map_view, [exam, map_subject], map_shown, api_name="map")
+        # The green button updates the database line and the list of exams and years
+        check_button.click(check_for_new_results, [exam], [database_info, exam], api_name="check")
     return page
 
 
@@ -827,32 +1045,28 @@ def main():
     # Lets the Windows terminal print Cyrillic, like "Министерство"
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-    print(f"Reading {MON_OPEN_DATA_PAGE} ...")
     try:
-        ministry_id = find_ministry_on_portal()
-    except (requests.exceptions.RequestException, RuntimeError) as error:
-        # mon.bg only tells us where the data is: if it's down, use the id we found there before
-        print(f"Couldn't read mon.bg ({error}) - using the ministry's id found on 17 November 2026")
-        ministry_id = KNOWN_MINISTRY_ID
-
-    try:
-        print("Asking data.egov.bg for the ministry's exam results...")
-        exam_files = list_exam_files(find_exam_datasets(ministry_id))
+        exam_files = stored_files()
+        if not exam_files:
+            # The first time, without a database: fill it from the government's websites, once
+            print(f"{DATABASE_FILE.name} is empty: downloading every results file once (about a minute)...")
+            update_database()
+            exam_files = stored_files()
         if not exam_files:
             print("The open data portal has no exam result files that this script recognises")
             sys.exit(1)
         # The 28 regions are the same in every file: take them from the first one.
         # Schools abroad are missing from some years, so make sure they're in the list
-        first_kind, first_file = next(iter(exam_files.values()))
-        regions = sorted(set(load_results(first_kind, first_file)["Region"]) | {ABROAD})
+        first_choice, (first_kind, _) = next(iter(exam_files.items()))
+        regions = sorted(set(read_results(first_choice, first_kind)["Region"]) | {ABROAD})
         page = build_page(exam_files, regions)
     except Exception as error:
         # Anything else, like the portal changing the layout of its data:
         # a clear message instead of a long Python error
-        print(f"Couldn't get the data from data.egov.bg: {type(error).__name__}: {error}")
+        print(f"Couldn't get the data: {type(error).__name__}: {error}")
         sys.exit(1)
 
-    print(f"Found {len(exam_files)} results files, for example: {', '.join(list(exam_files)[:3])}")
+    print(f"{len(exam_files)} results files in {DATABASE_FILE.name}, for example: {', '.join(list(exam_files)[:3])}")
     # If the ministry renames or moves a dataset, that exam disappears from the list: say so
     found_exams = {choice.rsplit(" - ", 1)[0] for choice in exam_files}
     missing = [exam for exam in EXAMS if exam not in found_exams]
