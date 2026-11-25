@@ -19,7 +19,11 @@ On the page you can also pick a town, to see how it compares with its region and
 country, and ask a local Ollama model (gemma4) for an overview of the top 5 towns and
 top 5 schools. The rankings are calculated by the code; the model only writes about them.
 
+The "Map of the regions" tab colours Bulgaria's 28 regions by how far their results are
+from the national average, from dark red (far below) to light green (far above).
+
 Before running:
+- bulgaria_regions.geojson (the region borders for the map) must be next to this script.
 - For the AI overview only: the Ollama app must be running, with the model downloaded:
   ollama pull gemma4. The rest of the page works without it.
 
@@ -32,10 +36,12 @@ import json
 import re
 import sys
 from functools import cache
+from pathlib import Path
 
 import gradio as gr
 import ollama
 import pandas as pd
+import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
 
@@ -91,6 +97,25 @@ MIN_SCHOOL_STUDENTS = 10
 
 # Some files start with an invisible "byte order mark" character
 BOM = chr(0xFEFF)
+
+# The borders of Bulgaria's 28 regions, for the map: a small file next to this script,
+# made from Natural Earth's public domain map data (naturalearthdata.com)
+REGION_MAP_FILE = Path(__file__).parent / "bulgaria_regions.geojson"
+
+# What the map can be coloured by
+MAP_SUBJECTS = ["Both subjects", "Bulgarian (BEL)", "Maths / 2nd exam"]
+
+# The map's colours, from far below the national average to far above it:
+# dark red -> red -> yellow (about average) -> light green.
+# They also get steadily lighter, so darker always means lower results, even in black and
+# white or for colour-blind readers (checked with simulated colour blindness)
+MAP_COLOURS = [[0.0, "#7a1416"], [0.25, "#c8432c"], [0.5, "#f0b84a"], [0.75, "#d8e88c"], [1.0, "#c4f1bd"]]
+
+# Shown under the map, so the colours aren't read as a verdict on the schools
+MAP_NOTE = (
+    "Colours show differences in exam results, not the quality of the schools: results also "
+    "depend on family income, town or village, and which students sit the exam."
+)
 
 overview_system_prompt = """
 You are an education data analyst. You write short, clear overviews of Bulgarian school
@@ -551,6 +576,148 @@ def write_overview(exam_files, choice, region):
         yield towns, schools, f"{text}\n\n*The model stopped with an error: {type(error).__name__}: {error}*"
 
 
+def schools_in_bulgaria(table):
+    """
+    Leave out the schools abroad. In Bulgaria every town starts with "ГР." (city) or "С." (village);
+    some files list the schools abroad under ЧУЖБИНА, others under a Bulgarian region
+    """
+    in_bulgaria = table["Town"].str.startswith(("ГР.", "С.")) & (table["Region"] != ABROAD)
+    return table[in_bulgaria]
+
+
+def subject_score(schools, kind, subject):
+    """
+    The average of a group of schools in the chosen subject, weighted by students.
+    "Both subjects" is the average of the two. None if there are no results
+    """
+    bel_students, bel_average, second_students, second_average = RESULT_COLUMNS[kind]
+    bel, _ = weighted_average(schools, bel_students, bel_average)
+    second, _ = weighted_average(schools, second_students, second_average)
+    if subject == MAP_SUBJECTS[1]:
+        return bel
+    if subject == MAP_SUBJECTS[2]:
+        return second
+    if bel is None or second is None:
+        return None
+    return (bel + second) / 2
+
+
+# @cache: the map file is read once, the first time the map is shown
+@cache
+def load_region_map():
+    """
+    Read the borders of Bulgaria's 28 regions from the map file next to this script
+    """
+    with open(REGION_MAP_FILE, encoding="utf-8") as file:
+        return json.load(file)
+
+
+def region_map(regions, borders, unit, limit):
+    """
+    The map: each region coloured by how far its average is from the national average
+    """
+    english = {feature["properties"]["region"]: feature["properties"]["name_en"] for feature in borders["features"]}
+    # The colour key's labels, like "-13", "-7", "0 = average", "+7", "+13"
+    ticks = [-limit, -limit / 2, 0, limit / 2, limit]
+    decimals = 0 if unit == "points" else 1
+    tick_labels = [f"{tick:+.{decimals}f}" if tick else "0 = average" for tick in ticks]
+    figure = go.Figure(go.Choropleth(
+        geojson = borders,
+        # Match the map's regions to the data by their Bulgarian names, like "СОФИЯ-ГРАД"
+        featureidkey = "properties.region",
+        locations = regions["Region"],
+        z = regions["Vs Bulgaria"],
+        # The same distance both ways, so the national average is always the middle colour (yellow)
+        zmin = -limit,
+        zmax = limit,
+        colorscale = MAP_COLOURS,
+        marker_line_color = "#6b6b6b",
+        marker_line_width = 0.6,
+        colorbar = dict(title=f"vs Bulgaria<br>({unit})", tickvals=ticks, ticktext=tick_labels, len=0.8, thickness=14),
+        customdata = list(zip([english.get(region, "") for region in regions["Region"]], regions["Score"], regions["Schools"])),
+        hovertemplate = ("<b>%{location}</b> (%{customdata[0]})<br>Average: %{customdata[1]:.2f}"
+                         "<br>vs Bulgaria: %{z:+.2f}<br>Schools: %{customdata[2]}<extra></extra>")
+    ))
+    # Show only Bulgaria's regions, without the world map around them
+    figure.update_geos(fitbounds="locations", visible=False, bgcolor="#fcfcfb")
+    figure.update_layout(height=460, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor="#fcfcfb")
+    return figure
+
+
+def region_bars(regions, unit, limit):
+    """
+    The same regions as a bar chart: best at the top, worst at the bottom, with each
+    region's exact difference written next to its bar, so it can be read without colours
+    """
+    figure = go.Figure(go.Bar(
+        x = regions["Vs Bulgaria"],
+        y = regions["Region"],
+        orientation = "h",
+        marker = dict(color=regions["Vs Bulgaria"], colorscale=MAP_COLOURS, cmin=-limit, cmax=limit,
+                      line=dict(color="#6b6b6b", width=0.6)),
+        text = [f"{difference:+.2f}" for difference in regions["Vs Bulgaria"]],
+        textposition = "outside",
+        cliponaxis = False,
+        customdata = regions["Score"],
+        hovertemplate = "<b>%{y}</b><br>Average: %{customdata:.2f}<br>vs Bulgaria: %{x:+.2f}<extra></extra>"
+    ))
+    figure.update_layout(
+        height = 660,
+        # Room at the top, so the chart's label doesn't cover the first region's name
+        margin = dict(l=10, r=10, t=40, b=40),
+        paper_bgcolor = "#fcfcfb",
+        plot_bgcolor = "#fcfcfb",
+        # Zero (the national average) in the middle, with room for the numbers on both sides
+        xaxis = dict(title=f"Difference from the Bulgarian average ({unit})", range=[-limit * 1.6, limit * 1.6],
+                     zeroline=True, zerolinecolor="#444444", gridcolor="#e6e6e3"),
+        yaxis = dict(automargin=True),
+        bargap = 0.25,
+        barcornerradius = 4
+    )
+    return figure
+
+
+def show_map(exam_files, choice, subject):
+    """
+    The map tab: a summary of the biggest gaps, then the map and the bar chart of the
+    28 regions, coloured by how far each region is from the national average
+    """
+    kind, table = load_choice(exam_files, choice)
+    table = schools_in_bulgaria(table)
+    subject = subject or MAP_SUBJECTS[0]
+    unit = "points" if kind == "nvo" else "grade"
+    try:
+        borders = load_region_map()
+    except OSError:
+        return f"The map file {REGION_MAP_FILE.name} is missing: it must be next to this script.", None, None
+
+    national = subject_score(table, kind, subject)
+    regions = pd.DataFrame(
+        [{"Region": region, "Schools": len(schools), "Score": subject_score(schools, kind, subject)}
+         for region, schools in table.groupby("Region")],
+        columns = ["Region", "Schools", "Score"]
+    ).dropna(subset=["Score"])
+    if national is None or regions.empty:
+        return f"No results for {subject} in {choice}.", None, None
+    regions["Vs Bulgaria"] = regions["Score"] - national
+    regions = regions.sort_values("Vs Bulgaria")
+    # The biggest distance from the average, in either direction, sets the ends of the colour scale
+    limit = max(regions["Vs Bulgaria"].abs().max(), 0.01)
+
+    worst, best = regions.iloc[0], regions.iloc[-1]
+    cities = subject_score(table[table["Town"].str.startswith("ГР.")], kind, subject)
+    villages = subject_score(table[table["Town"].str.startswith("С.")], kind, subject)
+    summary = [
+        f"**{choice}** · {subject} · Bulgaria: average **{national:.2f}** {unit}",
+        f"- Best region: **{best['Region']}** {best['Score']:.2f} ({best['Vs Bulgaria']:+.2f}) · "
+        f"worst region: **{worst['Region']}** {worst['Score']:.2f} ({worst['Vs Bulgaria']:+.2f}) · "
+        f"gap: **{best['Score'] - worst['Score']:.2f}** {unit}"
+    ]
+    if cities is not None and villages is not None:
+        summary.append(f"- Cities (ГР.): {cities:.2f} · villages (С.): {villages:.2f} · gap: **{cities - villages:.2f}** {unit}")
+    return "\n".join(summary), region_map(regions, borders, unit, limit), region_bars(regions, unit, limit)
+
+
 def build_page(exam_files, regions):
     """
     Build the Gradio web page. gr.Blocks (instead of gr.Interface) lets the town list
@@ -571,6 +738,9 @@ def build_page(exam_files, regions):
         towns = town_choices(exam_files, choice, region)
         # Keep the chosen town if it's still in the list
         return gr.Dropdown(choices=towns, value=current_town if current_town in towns else ALL_TOWNS)
+
+    def map_view(choice, subject):
+        return show_map(exam_files, choice, subject)
 
     with gr.Blocks(title="Bulgarian school exam results") as page:
         gr.Markdown(
@@ -606,6 +776,18 @@ def build_page(exam_files, regions):
                 top_towns = gr.Dataframe(label=f"Top {TOP} towns")
                 top_schools = gr.Dataframe(label=f"Top {TOP} schools")
                 overview_text = gr.Markdown()
+            with gr.Tab("Map of the regions", id="map") as map_tab:
+                gr.Markdown(
+                    "The 28 regions for the chosen exam and year, coloured by how far each one is from the "
+                    "Bulgarian average: **dark red** = far below, **yellow** = about average, **light green** = "
+                    "far above. Darker always means lower. The map always shows the whole country."
+                )
+                map_subject = gr.Radio(MAP_SUBJECTS, label="Colour by", value=MAP_SUBJECTS[0])
+                map_summary = gr.Markdown()
+                with gr.Row():
+                    map_plot = gr.Plot(label="Map", scale=3)
+                    bars_plot = gr.Plot(label="All regions, best at the top", scale=2)
+                gr.Markdown(f"*{MAP_NOTE}*  \nRegion borders: Natural Earth (public domain).")
 
         filters = [exam, region, town, search, rank_by]
         shown = [summary, results]
@@ -632,6 +814,12 @@ def build_page(exam_files, regions):
             overview, [exam, region], [top_towns, top_schools, overview_text], api_name="overview")
         # Show the default results as soon as the page opens
         page.load(show, filters, shown, api_name=False)
+        # The map is drawn when you open its tab (a chart drawn in a hidden tab can get the
+        # wrong size), and again when you change the exam or what it's coloured by
+        map_shown = [map_summary, map_plot, bars_plot]
+        map_tab.select(map_view, [exam, map_subject], map_shown, api_name=False)
+        exam.change(map_view, [exam, map_subject], map_shown, api_name=False)
+        map_subject.input(map_view, [exam, map_subject], map_shown, api_name="map")
     return page
 
 
