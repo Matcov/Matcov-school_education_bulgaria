@@ -18,7 +18,7 @@ Cum să-l citești:
 1. **Păstrează** rezultatele oficiale la examene ale fiecărei școli din Bulgaria într-o **bază de date
    locală**, fișierul `school_results.db`. Ministerul Educației din Bulgaria (МОН) publică rezultatele
    pe internet; programul le descarcă doar prima dată sau atunci când apeși butonul verde
-   **Check for new results** („Caută rezultate noi”).
+   **Caută rezultate noi**.
 2. **Curăță** datele în timp ce le descarcă, pentru că sunt dezordonate: nume scrise în moduri
    diferite, numere cu virgulă și așa mai departe.
 3. **Afișează** rezultatele pe o pagină web în browserul tău, făcută cu biblioteca Gradio.
@@ -274,13 +274,13 @@ flowchart TD
     n_build_language_page -.->|creează| n_check
     YOU -->|pagina se deschide, localitate nouă sau alt clasament| n_show
     YOU -->|examen sau regiune nouă| n_refresh
-    YOU -->|Show results sau Enter| n_tab
-    YOU -->|Write AI overview| n_overview
-    YOU -->|fila Map, examen nou sau Colour by| n_map_view
-    YOU -->|Difference from Bulgaria| n_difference_view
-    YOU -->|Change since the previous year| n_change_view
-    YOU -->|Trends over the years| n_trends_view
-    YOU -->|Check for new results| n_check
+    YOU -->|Arată rezultatele sau Enter| n_tab
+    YOU -->|Scrie prezentarea AI| n_overview
+    YOU -->|fila Harta și tendințele regiunilor, examen nou sau Colorează după| n_map_view
+    YOU -->|Diferența față de Bulgaria| n_difference_view
+    YOU -->|Schimbarea față de anul precedent| n_change_view
+    YOU -->|Tendințele de-a lungul anilor| n_trends_view
+    YOU -->|Caută rezultate noi| n_check
     n_refresh -.->|apoi| n_show
     n_tab -.->|apoi| n_show
     n_check --> n_update
@@ -404,10 +404,10 @@ main()
 Aici nu e nevoie de internet: totul vine din baza de date. Fiecare funcție de mai sus care afișează
 text primește limba paginii și îi cere lui `translate()` textele ei.
 
-**Parcursul B: fila „Schools”** (pagina se deschide, schimbi ceva sau apeși „Show results”)
+**Parcursul B: fila „Școli”** (pagina se deschide, schimbi ceva sau apeși „Arată rezultatele”)
 
 ```text
-show_schools_tab()                 doar pentru „Show results” și Enter: mergi la fila Schools
+show_schools_tab()                 doar pentru „Arată rezultatele” și Enter: mergi la fila „Școli”
 refresh_towns()                    doar când se schimbă examenul sau regiunea: o listă nouă de localități
  └─ town_choices() → load_choice() → read_results(), town_label()
 show()
@@ -420,7 +420,7 @@ show()
       └─ shown_table()                      numele coloanelor tabelului, traduse
 ```
 
-**Parcursul C: apeși „Write AI overview”**
+**Parcursul C: apeși „Scrie prezentarea AI”**
 
 ```text
 (pagina trece la a doua filă)
@@ -429,7 +429,7 @@ overview()
       ├─ load_choice() → read_results()
       ├─ rank_towns() → weighted_average()   primele 5 localități
       ├─ rank_schools()                      primele 5 școli
-      ├─ weighted_average()                  media zonei și „Vs area average”
+      ├─ weighted_average()                  media zonei și „Față de media zonei”
       ├─ shown_table()                       numele coloanelor celor două tabele, traduse
       ├─ ollama_problem()                    e gata Ollama?
       ├─ template_overview()                 dacă nu, sau dacă AI-ul eșuează: o scrie programul
@@ -437,16 +437,17 @@ overview()
       └─ ollama.chat()                       gemma4 scrie, cuvânt cu cuvânt, în limba paginii
 ```
 
-**Parcursul D: deschizi fila „Map and trends of the regions”** (sau apeși unul dintre cele trei butoane ale ei,
-schimbi examenul sau schimbi „Colour by”)
+**Parcursul D: deschizi fila „Harta și tendințele regiunilor”** (sau apeși unul dintre cele trei
+butoane ale ei, schimbi examenul sau schimbi „Colorează după”)
 
 Cele trei butoane apelează `difference_view()`, `change_view()` sau `trends_view()`. Fiecare dintre
-ele apelează `map_view()` cu vederea sa. Deschiderea filei, un examen nou sau „Colour by” apelează
-`map_view()` direct, cu vederea pe care ai ales-o ultima (la început, „Difference from Bulgaria”).
+ele apelează `map_view()` cu vederea sa. Deschiderea filei, un examen nou sau „Colorează după”
+apelează `map_view()` direct, cu vederea pe care ai ales-o ultima (la început, „Diferența față
+de Bulgaria”).
 
 ```text
 map_view()
- ├─ show_map()                     „Difference from Bulgaria”: rezumatul diferențelor + harta + barele
+ ├─ show_map()                     „Diferența față de Bulgaria”: rezumatul diferențelor + harta + barele
  │    ├─ load_choice() → read_results()
  │    ├─ schools_in_bulgaria()                  lasă deoparte școlile din străinătate
  │    ├─ load_region_map()                      citește bulgaria_regions.geojson (doar prima dată)
@@ -455,7 +456,7 @@ map_view()
  │    ├─ choice_label(), subject_name()         examenul și materia, în rezumat
  │    ├─ region_map() → colour_key()            harta colorată
  │    └─ region_bars() → colour_key(), signed() graficul cu bare, cea mai bună sus
- ├─ show_change()                  „Change since the previous year”
+ ├─ show_change()                  „Schimbarea față de anul precedent”
  │    ├─ load_choice() → read_results()
  │    ├─ unit_word()
  │    ├─ exam_years()                           anii acestui examen, ca să-l găsească pe cel precedent
@@ -468,7 +469,7 @@ map_view()
  │    ├─ exam_name(), subject_name(), region_list()   cuvintele rezumatului
  │    ├─ region_map() → colour_key()            harta schimbărilor
  │    └─ region_bars() → colour_key(), signed() graficul cu bare, cea mai îmbunătățită sus
- └─ show_trends()                  „Trends over the years”
+ └─ show_trends()                  „Tendințele de-a lungul anilor”
       ├─ load_choice() → read_results()
       ├─ unit_word(), exam_name()
       ├─ exam_years()                           toți anii acestui examen
@@ -479,7 +480,7 @@ map_view()
       └─ gap_trend_chart() → year_labels(), unit_word()   linia decalajului dintre cea mai bună și cea mai slabă regiune
 ```
 
-**Parcursul E: apeși butonul verde „Check for new results”**
+**Parcursul E: apeși butonul verde „Caută rezultate noi”**
 
 ```text
 check_for_new_results()
@@ -615,7 +616,7 @@ Următoarele cinci ajutoare sunt pentru cele **4 limbi**. Codul lucrează mereu 
 - **Apelată de:** `rank_towns()`, `show_results()`, `write_overview()`, `subject_score()`.
 
 #### `town_label(town, region)`: [linia 540](../alex_school_results.py#L540)
-- **Într-o propoziție:** construiește textul afișat în lista de localități (Town).
+- **Într-o propoziție:** construiește textul afișat în lista „Localitate”.
 - **Exemplu:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **De ce și regiunea:** multe sate au același nume în regiuni diferite.
 - **Apelată de:** `town_choices()`.
@@ -632,7 +633,7 @@ Următoarele cinci ajutoare sunt pentru cele **4 limbi**. Codul lucrează mereu 
 ### Grupa 2: Luarea datelor de pe internet
 
 Aceste funcții sunt folosite **doar pentru a umple sau a actualiza baza de date**: prima dată și
-atunci când apeși butonul verde **Check for new results**.
+atunci când apeși butonul verde **Caută rezultate noi**.
 
 #### `call_portal(method, payload)`: [linia 228](../alex_school_results.py#L228)
 - **Într-o propoziție:** trimite o întrebare portalului de date deschise (data.egov.bg) și întoarce
@@ -766,8 +767,7 @@ atunci când apeși butonul verde **Check for new results**.
 #### `stored_files()`: [linia 397](../alex_school_results.py#L397)
 - **Într-o propoziție:** listează toate fișierele cu rezultate din baza de date.
 - **Dă înapoi:** același fel de dicționar ca `list_exam_files()`: *„examen - an” → (tip, ID-ul
-  fișierului)*. Acest dicționar umple lista „Exam and school year” (examen și an școlar) de pe
-  pagină.
+  fișierului)*. Acest dicționar umple lista „Examen și an școlar” de pe pagină.
 - **Cum:** `SELECT … FROM files` citește tabelul `files`. Apoi două sortări pun fișierele examen cu
   examen (în ordinea din `EXAMS`), cu anul cel mai nou primul. Sortarea din Python este **stabilă**:
   când sortează după examen, fișierele aceluiași examen își păstrează ordinea anilor din prima
@@ -802,11 +802,10 @@ atunci când apeși butonul verde **Check for new results**.
   (butonul verde).
 
 #### `database_status(language)`: [linia 460](../alex_school_results.py#L460)
-- **Într-o propoziție:** scrie rândul din partea de sus a paginii, de exemplu *„Data: 25 results
-  files in the local database (school_results.db) · last checked on data.egov.bg: 2026-11-25
-  13:22”* (25 de fișiere cu rezultate în baza de date locală · ultima verificare pe data.egov.bg).
-- **Primește:** limba paginii. În română rândul este *„Date: fișiere cu rezultate în baza de date
-  locală (school_results.db): 25 · ultima verificare pe data.egov.bg: …”*.
+- **Într-o propoziție:** scrie rândul din partea de sus a paginii, de exemplu *„Date: fișiere cu
+  rezultate în baza de date locală (school_results.db): 25 · ultima verificare pe data.egov.bg:
+  2026-11-25 13:22”*.
+- **Primește:** limba paginii, în care scrie rândul.
 - **Cum:** pune bazei de date două întrebări în SQL: `SELECT COUNT(*) FROM files` (câte fișiere) și
   `SELECT MAX(checked_at) FROM checks` (ultima verificare). Apoi `translate("data_status", …)` le
   completează în textul din limba paginii. Dacă portalul n-a fost verificat niciodată, scrie
@@ -872,9 +871,9 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `write_overview()`.
 
 #### `show_results(exam_files, choice, region, town, search, rank_by, language)`: [linia 611](../alex_school_results.py#L611)
-- **Într-o propoziție:** face tot ce apare în fila „Schools”: textul rezumatului și tabelul.
+- **Într-o propoziție:** face tot ce apare în fila „Școli”: textul rezumatului și tabelul.
 - **Primește:** cele 5 alegeri ale tale de pe pagină: examenul, regiunea, localitatea, textul căutat
-  și „rank by” (criteriul de clasament), plus limba paginii. **Dă înapoi două valori:** rezumatul
+  și „Ordonează școlile după”, plus limba paginii. **Dă înapoi două valori:** rezumatul
   (text Markdown) și tabelul.
 - **Cum:**
   1. **Încărcare:** ia tabelul cu `load_choice()`.
@@ -905,8 +904,8 @@ atunci când apeși butonul verde **Check for new results**.
   terminal.
 - **Cum:**
   1. Cere lui Ollama de pe calculatorul tău (`http://localhost:11434/api/tags`) lista lui de modele.
-     - **Niciun răspuns:** „Ollama isn't running…” (Ollama nu rulează).
-     - **gemma4 nu e în listă:** „gemma4 isn't downloaded…” (gemma4 nu e descărcat).
+     - **Niciun răspuns:** „Ollama nu rulează…”.
+     - **gemma4 nu e în listă:** „gemma4 nu este descărcat…”.
   2. Pentru Ollama, `gemma4` și `gemma4:latest` sunt același model, așa că programul adaugă
      `:latest` înainte de comparație.
 - **De ce numele acesta:** funcția răspunde la întrebarea *„care e problema?”*, iar `None`
@@ -935,10 +934,9 @@ atunci când apeși butonul verde **Check for new results**.
 - **Într-o propoziție:** scrie prezentarea **fără AI**, din aceleași numere pe care le primește
   AI-ul.
 - **Când:** dacă Ollama nu rulează, dacă modelul nu e descărcat sau dacă AI-ul eșuează la jumătate.
-- **Dă înapoi:** text Markdown în limba paginii, cu aceeași așezare ca al AI-ului: „## Top towns”
-  (în română „## Primele localități”), o listă numerotată, „## Top schools” („## Primele școli”), o
-  listă numerotată și un rând de încheiere dacă majoritatea primelor școli sunt în aceeași
-  localitate.
+- **Dă înapoi:** text Markdown în limba paginii, cu aceeași așezare ca al AI-ului: „## Primele
+  localități”, o listă numerotată, „## Primele școli”, o listă numerotată și un rând de încheiere
+  dacă majoritatea primelor școli sunt în aceeași localitate.
 - **Exemplu de rând:** `1. **ГР.ВАРНА**: 60.04, 6.75 above the area's average`. În română:
   `1. **ГР.ВАРНА**: 60.04, cu 6.75 peste media zonei`.
 - **Cum:**
@@ -960,7 +958,7 @@ atunci când apeși butonul verde **Check for new results**.
   1. Încarcă tabelul și păstrează regiunea aleasă.
   2. Apelează `rank_towns()` și `rank_schools()` și le păstrează pe primele 5 (`head(TOP)`).
   3. Calculează media zonei și cât de departe de ea este fiecare localitate și școală
-     („Vs area average”, față de media zonei).
+     (coloana „Vs area average” din cod, pe pagină „Față de media zonei”).
      - **Codul calculează asta, nu AI-ul,** pentru că modelele AI nu se descurcă bine cu
        aritmetica. În testele noastre, gemma4 a scris 13,04 în loc de 14,04.
      - Textul este deja în limba paginii, ca „6.75 above” sau „cu 6.75 peste”.
@@ -1031,7 +1029,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Într-o propoziție:** stabilește scara de culori pentru un set de numere peste și sub 0: cele
   două capete ale ei și etichetele legendei.
 - **Primește:** numerele (o coloană de tabel) și textul pentru mijlocul legendei, ca
-  „0 = average” (0 = media) sau „0 = no change” (0 = nicio schimbare). **Dă înapoi trei valori:**
+  „0 = media” sau „0 = nicio schimbare”. **Dă înapoi trei valori:**
   `limit`, cea mai mare distanță față de 0; cele 5 poziții ale etichetelor legendei; și etichetele
   însele.
 - **Cum:**
@@ -1042,7 +1040,7 @@ atunci când apeși butonul verde **Check for new results**.
      funcționeze totuși.
   3. Mai puține zecimale pentru numerele mari: „+13” pentru puncte, „+0.41” pentru note.
 - **Exemplu:** pentru diferențele de la clasa a 7-a (−13,45 … +13,34) dă etichetele „−13”, „−7”,
-  „0 = average”, „+7”, „+13”.
+  „0 = media”, „+7”, „+13”.
 - **Apelată de:** `region_map()`, `region_bars()` și `trend_heatmap()`.
 
 #### `signed(value, decimals=2)`: [linia 897](../alex_school_results.py#L897)
@@ -1066,9 +1064,9 @@ atunci când apeși butonul verde **Check for new results**.
 - **Într-o propoziție:** desenează harta, cu fiecare regiune colorată după numerele dintr-o coloană a
   tabelului: diferența ei față de media națională sau cât s-a schimbat acea diferență.
 - **Primește:** tabelul regiunilor, granițele, coloana după care colorează (`"Vs Bulgaria"` sau
-  `"Change"`), titlul legendei de culori și textul pentru mijlocul ei („0 = average” sau
-  „0 = no change”). Tabelul are și o coloană `"Hover"`: textul afișat când mouse-ul este deasupra
-  unei regiuni. **Dă înapoi:** o figură Plotly, pe care Gradio o afișează pe pagină.
+  `"Change"`), titlul legendei de culori și textul pentru mijlocul ei („0 = media” sau
+  „0 = nicio schimbare”). Tabelul are și o coloană `"Hover"`: textul afișat când mouse-ul este
+  deasupra unei regiuni. **Dă înapoi:** o figură Plotly, pe care Gradio o afișează pe pagină.
 - **Cum:**
   1. `colour_key()` dă cele două capete ale scării și etichetele legendei.
   2. `go.Choropleth(...)` este harta Plotly cu „zone colorate”. `featureidkey="properties.region"`
@@ -1076,9 +1074,9 @@ atunci când apeși butonul verde **Check for new results**.
   3. `zmin=-limit, zmax=limit`: culorile merg la aceeași distanță în ambele direcții, așa că 0 este
      mereu culoarea din mijloc, galbenul.
   4. `fitbounds="locations", visible=False` face zoom pe Bulgaria și ascunde restul lumii.
-- **De ce o singură funcție pentru două hărți:** vederile „Difference” și „Change” desenează același
-  fel de hartă dintr-o coloană diferită, așa că folosesc împreună această funcție în loc să aibă
-  două copii ale ei.
+- **De ce o singură funcție pentru două hărți:** vederile „Diferența față de Bulgaria” și
+  „Schimbarea față de anul precedent” desenează același fel de hartă dintr-o coloană diferită, așa
+  că folosesc împreună această funcție în loc să aibă două copii ale ei.
 - **Apelată de:** `show_map()` și `show_change()`.
 
 #### `region_bars(regions, column, axis_title)`: [linia 942](../alex_school_results.py#L942)
@@ -1104,9 +1102,9 @@ atunci când apeși butonul verde **Check for new results**.
   `gap_trend_chart()`.
 
 #### `show_map(exam_files, choice, subject, language)`: [linia 984](../alex_school_results.py#L984)
-- **Într-o propoziție:** face tot ce apare în fila „Map and trends of the regions”: rezumatul diferențelor,
-  harta și graficul cu bare.
-- **Primește:** examenul și anul alese, materia din „Colour by” (colorează după) și limba paginii.
+- **Într-o propoziție:** face tot ce apare în fila „Harta și tendințele regiunilor”:
+  rezumatul diferențelor, harta și graficul cu bare.
+- **Primește:** examenul și anul alese, materia din „Colorează după” și limba paginii.
   **Dă înapoi trei valori:** textul rezumatului, harta și graficul cu bare.
 - **Cum:**
   1. Încarcă tabelul (`load_choice()`) și lasă deoparte școlile din străinătate
@@ -1123,10 +1121,10 @@ atunci când apeși butonul verde **Check for new results**.
      „Vs Bulgaria”.
   6. Toate cuvintele sunt în limba paginii: unitatea de la `unit_word()`, examenul de la
      `choice_label()`, materia de la `subject_name()`, iar restul de la `translate()`.
-- **Exemplu de rezumat:** „Best region: СОФИЯ-ГРАД 60.22 (+13.34) · worst region: СЛИВЕН 33.43
-  (−13.45) · gap: 26.79 points” (cea mai bună regiune · cea mai slabă regiune · decalaj), apoi
-  „Cities (ГР.): 49.68 · villages (С.): 30.95 · gap: 18.73 points” (orașe · sate · decalaj).
-- **Apelată de:** `map_view()` de pe pagină, pentru vederea „Difference from Bulgaria”.
+- **Exemplu de rezumat:** „Cea mai bună regiune: СОФИЯ-ГРАД 60.22 (+13.34) · cea mai slabă
+  regiune: СЛИВЕН 33.43 (−13.45) · decalaj: 26.79 puncte”, apoi „Orașe (ГР.): 49.68 · sate (С.):
+  30.95 · decalaj: 18.73 puncte”.
+- **Apelată de:** `map_view()` de pe pagină, pentru vederea „Diferența față de Bulgaria”.
 
 #### `exam_years(exam_files, choice)`: [linia 1041](../alex_school_results.py#L1041)
 - **Într-o propoziție:** găsește toți anii examenului ales, cu cel mai vechi primul.
@@ -1167,8 +1165,8 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `show_change()` și `show_trends()`.
 
 #### `show_change(exam_files, choice, subject, language)`: [linia 1079](../alex_school_results.py#L1079)
-- **Într-o propoziție:** face vederea „Change since the previous year”: cât s-a mișcat fiecare
-  regiune față de media națională, comparativ cu anul dinainte.
+- **Într-o propoziție:** face vederea „Schimbarea față de anul precedent”: cât s-a mișcat
+  fiecare regiune față de media națională, comparativ cu anul dinainte.
 - **Dă înapoi trei valori,** ca `show_map()`: rezumatul, harta și graficul cu bare.
 - **Cum:**
   1. Găsește locul anului ales în `exam_years()`. Dacă este primul an, nu are cu ce compara, așa că
@@ -1188,8 +1186,8 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `map_view()` de pe pagină.
 
 #### `show_trends(exam_files, choice, subject, language)`: [linia 1126](../alex_school_results.py#L1126)
-- **Într-o propoziție:** face vederea „Trends over the years”: distanța fiecărei regiuni față de
-  media națională, în fiecare an al examenului ales.
+- **Într-o propoziție:** face vederea „Tendințele de-a lungul anilor”: distanța fiecărei
+  regiuni față de media națională, în fiecare an al examenului ales.
 - **Dă înapoi trei valori:** rezumatul, grila regiunilor și anilor (`trend_heatmap()`) și graficul
   cu linie al decalajului dintre cea mai bună și cea mai slabă regiune (`gap_trend_chart()`).
 - **Cum:**
@@ -1219,8 +1217,7 @@ atunci când apeși butonul verde **Check for new results**.
   sau `"drift_same"`). O schimbare mai mică de 0,05 în oricare direcție contează ca „cam la fel”,
   pentru că e prea mică pentru a însemna ceva.
 - **Exemplu:** decalajul de la clasa a 10-a a crescut cu 1,07 puncte, dar raportat la împrăștiere a
-  scăzut de la 1,28 la 1,21, așa că `drift_words(-0.07, "en")` dă „the regions came closer”, iar
-  `drift_words(-0.07, "ro")` dă „regiunile s-au apropiat”.
+  scăzut de la 1,28 la 1,21, așa că `drift_words(-0.07, "ro")` dă „regiunile s-au apropiat”.
 - **Apelată de:** `show_trends()`.
 
 #### `trend_heatmap(gaps, kind, language)`: [linia 1180](../alex_school_results.py#L1180)
@@ -1244,15 +1241,15 @@ atunci când apeși butonul verde **Check for new results**.
   regiune, an de an. O linie care urcă înseamnă că regiunile se îndepărtează unele de altele.
 - **Primește:** decalajele în puncte sau note (`spread`), aceleași decalaje împărțite la
   împrăștierea rezultatelor școlilor (`relative`), tipul examenului și limba paginii. `unit_word()`
-  transformă tipul în unitatea de măsură, ca „points” sau „puncte”.
+  transformă tipul în unitatea de măsură, ca „puncte” sau „notă”.
 - **Cum:**
   1. `go.Scatter(mode="lines+markers+text")` desenează o linie cu puncte. Doar primul și ultimul an
      au numărul scris, ca linia să rămână ușor de citit.
   2. Axa începe de la 0, ca urcarea liniei să nu fie exagerată, și merge cu 20% peste cel mai înalt
      punct, ca numărul lui să încapă.
   3. `customdata=relative.values` dă fiecărui punct un număr în plus, pe care îl arată fereastra
-     care apare la trecerea mouse-ului: „Gap: 26.79 points = 1.53 times the spread of the schools'
-     results” (decalajul = de câte ori împrăștierea rezultatelor școlilor).
+     care apare la trecerea mouse-ului: „Decalaj: 26.79 puncte = 1.53 ori împrăștierea rezultatelor
+     școlilor”.
 - **Apelată de:** `show_trends()`.
 
 ---
@@ -1313,12 +1310,12 @@ atunci când apeși butonul verde **Check for new results**.
 |---|---|
 | deschizi pagina | `show()` |
 | schimbi examenul sau regiunea | `refresh_towns()`, apoi `show()` |
-| alegi o localitate sau schimbi „Rank schools by” | `show()` |
-| apeși „Show results” sau Enter în căsuța de căutare | `show_schools_tab()`, apoi `show()` |
-| apeși „Write AI overview” | trece la a doua filă, apoi `overview()` |
-| deschizi fila „Map and trends of the regions”, schimbi examenul sau schimbi „Colour by” | `map_view()`, cu vederea aleasă ultima |
-| apeși „Difference from Bulgaria”, „Change since the previous year” sau „Trends over the years” | `difference_view()`, `change_view()` sau `trends_view()`, care apelează `map_view()` |
-| apeși butonul verde „Check for new results” | `check_for_new_results()` |
+| alegi o localitate sau schimbi „Ordonează școlile după” | `show()` |
+| apeși „Arată rezultatele” sau Enter în căsuța de căutare | `show_schools_tab()`, apoi `show()` |
+| apeși „Scrie prezentarea AI” | trece la a doua filă, apoi `overview()` |
+| deschizi fila „Harta și tendințele regiunilor”, schimbi examenul sau schimbi „Colorează după” | `map_view()`, cu vederea aleasă ultima |
+| apeși „Diferența față de Bulgaria”, „Schimbarea față de anul precedent” sau „Tendințele de-a lungul anilor” | `difference_view()`, `change_view()` sau `trends_view()`, care apelează `map_view()` |
+| apeși butonul verde „Caută rezultate noi” | `check_for_new_results()` |
 | apeși EN, BG, RU sau RO | nicio funcție: butonul este un link, iar browserul deschide pagina acelei limbi |
 
 - **Funcțiile interioare** (create în interiorul lui `build_language_page()`):
@@ -1340,7 +1337,7 @@ atunci când apeși butonul verde **Check for new results**.
     cu vederea lor. Un buton nu poate transmite un cuvânt fix unei funcții, așa că fiecare primește
     propria lui funcție mică.
   - `check_for_new_results(current_choice)` este și ea un generator:
-    1. Mai întâi arată „Checking data.egov.bg…” (se verifică data.egov.bg), apoi apelează
+    1. Mai întâi arată „Caut fișiere noi cu rezultate pe data.egov.bg…”, apoi apelează
        `update_database()`.
     2. Umple din nou dicționarul comun `exam_files` (`clear()`, apoi `update()`). Toate cele 4
        pagini folosesc împreună acest singur dicționar, așa că fiecare parte a fiecărei pagini vede
@@ -1350,7 +1347,7 @@ atunci când apeși butonul verde **Check for new results**.
        `choice_label()`.
     4. Dacă verificarea eșuează, de exemplu fără internet, arată eroarea în schimb.
   - `show_schools_tab()` întoarce `gr.Tabs(selected="schools")`, ceea ce înseamnă „mergi la fila
-    Schools”.
+    Școli”.
   - O `lambda` minusculă, o funcție de o singură linie fără nume, trece la a doua filă.
 - **`.input` sau `.change`?**
   - `.input` reacționează doar la **tine**.
@@ -1374,10 +1371,14 @@ atunci când apeși butonul verde **Check for new results**.
        așa că se citește ușor. Devine mai închis (`#116329`) când mouse-ul este deasupra lui.
      - `.grey-button` face celelalte butoane gri deschis (text închis pe `#e9e9e7`, un contrast de
        13,6:1).
-     - Trei reguli `#main-tabs` fac numele celor trei file centrate, îngroșate (`font-weight: 700`)
-       și cu două mărimi mai mari (`--text-xl`, 22px, în loc de obișnuitul `--text-md`, 14px).
-       `flex-wrap: wrap` le lasă să treacă pe un al doilea rând într-o fereastră îngustă: altfel
-       filele centrate ar fi tăiate în ambele părți.
+     - Regulile `#main-tabs` transformă cele trei file în **butoane verzi**, centrate, cu text
+       îngroșat (`font-weight: 700`) cu o mărime mai mare decât de obicei (`--text-lg`, 16px, în loc
+       de `--text-md`, 14px). Textul alb pe `#1a7f37` are un contrast de 5,1:1.
+       - Fila deschisă are clasa `selected`. Primește un verde mai închis (`#0b4a1f`, 10,4:1) și
+         text subliniat, așa că o vezi chiar și fără culori. Linia portocalie a lui Gradio de sub
+         ea este ascunsă (`::after { display: none }`).
+       - `gap: 8px` lasă un mic spațiu între butoane. `flex-wrap: wrap` le lasă să treacă pe un al
+         doilea rând într-o fereastră îngustă: altfel filele centrate ar fi tăiate în ambele părți.
      - `.language-buttons` face ca linkurile pentru limbi să arate ca niște butoane albastre: text
        alb pe `#0b5cad` (un contrast de 6,7:1). Limba curentă (`a.current`) este mai închisă,
        `#073d73` (10,9:1), și subliniată, așa că o vezi chiar și fără culori.
@@ -1385,7 +1386,7 @@ atunci când apeși butonul verde **Check for new results**.
        de sus. Butoanele pentru limbi îi fac treaba.
 - **Apelată de:** `main()`.
 
-#### `main()`: [linia 1476](../alex_school_results.py#L1476)
+#### `main()`: [linia 1483](../alex_school_results.py#L1483)
 - **Într-o propoziție:** punctul de pornire: pregătește datele din baza de date, construiește
   aplicația și o deschide în browserul tău.
 - **Cum:**

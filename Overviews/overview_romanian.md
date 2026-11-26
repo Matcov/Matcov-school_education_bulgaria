@@ -70,7 +70,7 @@ Fișierele primite de la portalul guvernamental conțin o serie de diferențe de
 
 ## 5. Funcționalitățile aplicației web (alex_school_results.py)
 
-Interfața cu utilizatorul este construită cu **Gradio** (`gr.Blocks`) și oferă trei file. Deasupra lor se află un rând cu starea bazei de date (numărul de fișiere și data ultimei verificări) și butonul verde **„Caută rezultate noi”**. Toate celelalte butoane sunt gri-deschis, astfel încât butonul verde iese în evidență.
+Interfața cu utilizatorul este construită cu **Gradio** (`gr.Blocks`) și oferă trei file. Deasupra lor se află un rând cu starea bazei de date (numărul de fișiere și data ultimei verificări) și butonul verde **„Caută rezultate noi”**. Toate celelalte butoane sunt gri-deschis, astfel încât butonul verde iese în evidență. Cele trei file sunt butoane verzi în mijlocul paginii; fila deschisă este mai închisă și subliniată.
 
 ### Fila „Școli”
 * **Filtrare:** Alegerea examenului și a anului școlar, a regiunii și a localității (lista de orașe și sate se filtrează dinamic după regiunea aleasă).

@@ -1344,10 +1344,14 @@ click the green **Check for new results** button.
        so it's easy to read. It gets darker (`#116329`) when the mouse is over it.
      - `.grey-button` makes the other buttons light grey (dark text on `#e9e9e7`, a contrast of
        13.6:1).
-     - Three `#main-tabs` rules make the three tab names centred, bold (`font-weight: 700`) and two
-       text sizes bigger (`--text-xl`, 22px, instead of the normal `--text-md`, 14px).
-       `flex-wrap: wrap` lets them go onto a second line in a narrow window: otherwise the centred
-       tabs would be cut off on both sides.
+     - The `#main-tabs` rules turn the three tabs into **green buttons**, centred, with bold text
+       (`font-weight: 700`) one size bigger than normal (`--text-lg`, 16px, instead of
+       `--text-md`, 14px). White on `#1a7f37` has a contrast of 5.1:1.
+       - The open tab has the class `selected`. It gets a darker green (`#0b4a1f`, 10.4:1) and
+         underlined text, so you can see it even without the colours. Gradio's own orange line
+         under it is hidden (`::after { display: none }`).
+       - `gap: 8px` leaves a little space between the buttons. `flex-wrap: wrap` lets them go onto
+         a second line in a narrow window: otherwise the centred tabs would be cut off on both sides.
      - `.language-buttons` makes the language links look like blue buttons: white text on
        `#0b5cad` (a contrast of 6.7:1). The current language (`a.current`) is darker, `#073d73`
        (10.9:1), and underlined, so you can see it even without the colours.
@@ -1355,7 +1359,7 @@ click the green **Check for new results** button.
        language buttons do its job.
 - **Called by:** `main()`.
 
-#### `main()`: [line 1476](../alex_school_results.py#L1476)
+#### `main()`: [line 1483](../alex_school_results.py#L1483)
 - **In one sentence:** the starting point: it gets the data ready from the database, builds the app
   and opens it in your browser.
 - **How:**

@@ -70,7 +70,7 @@ The incoming files from the government portal have a number of formatting differ
 
 ## 5. Web application features (alex_school_results.py)
 
-The user interface is built with **Gradio** (`gr.Blocks`) and has three tabs. Above them is a row with the database status (number of files and the date of the last check) and the green **"Check for new results"** button. All other buttons are light grey, so the green button stands out.
+The user interface is built with **Gradio** (`gr.Blocks`) and has three tabs. Above them is a row with the database status (number of files and the date of the last check) and the green **"Check for new results"** button. All other buttons are light grey, so the green button stands out. The three tabs are green buttons in the middle of the page; the open one is darker and underlined.
 
 ### The "Schools" tab
 * **Filtering:** Choose the exam and school year, the region and the town or village (the list of towns and villages is filtered dynamically by the selected region).

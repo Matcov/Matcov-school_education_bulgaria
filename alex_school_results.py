@@ -1442,17 +1442,24 @@ def build_app(exam_files, regions):
     # - the other buttons are light grey: dark text on #e9e9e7 has a contrast of 13.6:1
     # - the language buttons are blue: white text on #0b5cad has a contrast of 6.7:1; the current
     #   language is darker (#073d73, 10.9:1) and underlined, so it doesn't rely on colour alone
-    # The three tabs' names are centred, bold and two text sizes bigger than normal (--text-xl
-    # instead of --text-md), so the tabs are easy to find. In a narrow window they wrap onto a
-    # second line ("flex-wrap"), because centred tabs that don't fit would be cut off on both sides
+    # - the three tabs are green buttons, centred, with bold text one size bigger than normal
+    #   (--text-lg instead of --text-md), so they are easy to find. White on #1a7f37 has a contrast
+    #   of 5.1:1. The open tab is darker (#0b4a1f, 10.4:1) and underlined, so it doesn't rely on
+    #   colour alone; Gradio's orange line under it is hidden. In a narrow window the buttons wrap
+    #   onto a second line ("flex-wrap"), because centred tabs that don't fit would be cut off
     page_style = (
         "#check-button { background: #1a7f37 !important; color: #ffffff !important; border-color: #1a7f37 !important; }"
         "#check-button:hover { background: #116329 !important; border-color: #116329 !important; }"
         ".grey-button { background: #e9e9e7 !important; color: #1f1f1f !important; border: 1px solid #8f8f8b !important; }"
         ".grey-button:hover { background: #dcdcd9 !important; }"
         "#main-tabs .tab-wrapper, #main-tabs .tab-container { justify-content: center; height: auto; }"
-        "#main-tabs .tab-container { flex-wrap: wrap; }"
-        "#main-tabs .tab-container button[role='tab'] { font-size: var(--text-xl); font-weight: 700; }"
+        "#main-tabs .tab-container { flex-wrap: wrap; gap: 8px; padding: 4px 0 10px; }"
+        "#main-tabs .tab-container button[role='tab'] { font-size: var(--text-lg); font-weight: 700;"
+        " background: #1a7f37 !important; color: #ffffff !important; border-radius: 8px; padding: 8px 18px; }"
+        "#main-tabs .tab-container button[role='tab']:hover { background: #116329 !important; }"
+        "#main-tabs .tab-container button[role='tab'].selected { background: #0b4a1f !important;"
+        " text-decoration: underline; text-underline-offset: 4px; }"
+        "#main-tabs .tab-container button[role='tab'].selected::after { display: none; }"
         ".language-buttons { display: flex; gap: 8px; justify-content: flex-end; align-items: center; height: 100%; }"
         ".language-buttons a { background: #0b5cad !important; color: #ffffff !important; text-decoration: none !important;"
         " font-weight: 700; padding: 6px 14px; border-radius: 6px; }"
