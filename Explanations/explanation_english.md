@@ -1,7 +1,7 @@
 # How `alex_school_results.py` works, explained simply
 
 This guide is for people who are **new to Python**. It explains every function (`def`) in
-[alex_school_results.py](alex_school_results.py) in plain words, and then shows how they all work
+[alex_school_results.py](../alex_school_results.py) in plain words, and then shows how they all work
 together.
 
 How to read it:
@@ -439,7 +439,7 @@ All the other functions only work with data that is already in memory.
 
 ### Group 1: Small helpers
 
-#### `tidy(text)`: [line 202](alex_school_results.py#L202)
+#### `tidy(text)`: [line 202](../alex_school_results.py#L202)
 - **In one sentence:** makes a name easy to compare with another name.
 - **Gets:** a text. **Gives back:** the same text in lower case, with single spaces and no full stop
   at the end.
@@ -451,7 +451,7 @@ All the other functions only work with data that is already in memory.
   stop at the end.
 - **Called by:** `find_exam_datasets()`.
 
-#### `tidy_town(town)`: [line 209](alex_school_results.py#L209)
+#### `tidy_town(town)`: [line 209](../alex_school_results.py#L209)
 - **In one sentence:** makes the same town look the same in every file.
 - **Examples:** `"ГР. СОФИЯ"` → `"ГР.СОФИЯ"` · `"Прага"` → `"ПРАГА"` ·
   `"СОФИЯ 11 РН КРАСНА ПОЛЯНА"` (a Sofia district) → `"ГР.СОФИЯ"`
@@ -463,7 +463,7 @@ All the other functions only work with data that is already in memory.
      "ГР.СОФИЯ".
 - **Called by:** `download_results()`, for every school.
 
-#### `to_number(text)`: [line 306](alex_school_results.py#L306)
+#### `to_number(text)`: [line 306](../alex_school_results.py#L306)
 - **In one sentence:** turns a cell of the file into a number, or into `None` when there's no
   result.
 - **Examples:** `"52.4"` → `52.4` · `"3,09"` → `3.09` (decimal comma) · `""` → `None` · `"0"` → `None`
@@ -473,7 +473,7 @@ All the other functions only work with data that is already in memory.
   `return value or None`, turns `0` into `None`.
 - **Called by:** `download_results()`, for every cell.
 
-#### `weighted_average(table, count_column, average_column)`: [line 483](alex_school_results.py#L483)
+#### `weighted_average(table, count_column, average_column)`: [line 483](../alex_school_results.py#L483)
 - **In one sentence:** the average over all **students**, not over schools.
 - **Why:** a school with 100 students should count more than a school with 5.
 - **Example:** school A has 100 students with an average of 60; school B has 5 students with 90.
@@ -485,13 +485,13 @@ All the other functions only work with data that is already in memory.
   school, adds it all up, and divides by the total number of students.
 - **Called by:** `rank_towns()`, `show_results()`, `write_overview()`, `subject_score()`.
 
-#### `town_label(town, region)`: [line 495](alex_school_results.py#L495)
+#### `town_label(town, region)`: [line 495](../alex_school_results.py#L495)
 - **In one sentence:** builds the text shown in the Town list.
 - **Example:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **Why the region:** many villages have the same name in different regions.
 - **Called by:** `town_choices()`.
 
-#### `split_town_label(label)`: [line 503](alex_school_results.py#L503)
+#### `split_town_label(label)`: [line 503](../alex_school_results.py#L503)
 - **In one sentence:** the opposite of `town_label()`: it takes the town and the region apart again.
 - **Example:** `"ГР.ВАРНА (ВАРНА)"` → `("ГР.ВАРНА", "ВАРНА")`
 - **How:** `rsplit(" (", 1)` cuts the text once, at the last `" ("`; `rstrip(")")` removes the
@@ -505,7 +505,7 @@ All the other functions only work with data that is already in memory.
 These functions are used **only to fill or update the database**: the very first time, and when you
 click the green **Check for new results** button.
 
-#### `call_portal(method, payload)`: [line 223](alex_school_results.py#L223)
+#### `call_portal(method, payload)`: [line 223](../alex_school_results.py#L223)
 - **In one sentence:** sends one question to the open data portal (data.egov.bg) and returns its
   answer.
 - **Gets:** the name of the question (`method`), e.g. `"listResources"`, and its details
@@ -523,7 +523,7 @@ click the green **Check for new results** button.
   place to fix.
 - **Called by:** `find_exam_datasets()`, `list_exam_files()`, `download_results()`.
 
-#### `find_ministry_on_portal()`: [line 236](alex_school_results.py#L236)
+#### `find_ministry_on_portal()`: [line 236](../alex_school_results.py#L236)
 - **In one sentence:** reads the ministry's "open data" page on mon.bg and finds the ministry's ID
   on the portal.
 - **Gets:** nothing. **Gives back:** the ID, a text like `"a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"`.
@@ -537,7 +537,7 @@ click the green **Check for new results** button.
 - **Called by:** `update_database()`. If mon.bg is down, `update_database()` uses
   `KNOWN_MINISTRY_ID` instead.
 
-#### `find_exam_datasets(ministry_id)`: [line 252](alex_school_results.py#L252)
+#### `find_exam_datasets(ministry_id)`: [line 252](../alex_school_results.py#L252)
 - **In one sentence:** finds the ministry's 4 exam datasets (НВО 4th, 7th and 10th grade, and
   ДЗИ) among its roughly 350 datasets.
 - **Gives back:** a dictionary *exam → dataset ID*, e.g. `{"NVO 7th grade": "b56288b6-...", ...}`
@@ -551,7 +551,7 @@ click the green **Check for new results** button.
   (kind, name). We only need the name here, so the kind gets the "don't need" name `_`.
 - **Called by:** `update_database()`.
 
-#### `list_exam_files(exam_datasets)`: [line 282](alex_school_results.py#L282)
+#### `list_exam_files(exam_datasets)`: [line 282](../alex_school_results.py#L282)
 - **In one sentence:** lists each exam's yearly files on the portal and gives each one a readable
   name like `"NVO 7th grade - 2025/2026"`.
 - **Gives back:** a dictionary *"exam - year" → (kind, file ID)*, e.g.
@@ -564,7 +564,7 @@ click the green **Check for new results** button.
   4. It sorts the files with the newest year first.
 - **Called by:** `update_database()`, which compares this list with the database's list.
 
-#### `download_results(kind, resource_id)`: [line 318](alex_school_results.py#L318)
+#### `download_results(kind, resource_id)`: [line 318](../alex_school_results.py#L318)
 - **In one sentence:** downloads one results file from the portal and turns it into a clean table,
   one row per school.
 - **Gets:** the kind (`"nvo"` or `"dzi"`) and the file's ID. **Gives back:** a table with the columns
@@ -595,7 +595,7 @@ click the green **Check for new results** button.
 
 ### Group 3: The database
 
-#### `open_database()`: [line 364](alex_school_results.py#L364)
+#### `open_database()`: [line 364](../alex_school_results.py#L364)
 - **In one sentence:** opens the database file `school_results.db`, and creates it and its tables if
   they don't exist yet.
 - **Gives back:** an open **connection** to the database: the line through which Python talks to it.
@@ -609,7 +609,7 @@ click the green **Check for new results** button.
 - **Called by:** `save_results()`, `stored_files()`, `read_results()`, `update_database()`,
   `database_status()`.
 
-#### `save_results(choice, kind, resource_id, table)`: [line 374](alex_school_results.py#L374)
+#### `save_results(choice, kind, resource_id, table)`: [line 374](../alex_school_results.py#L374)
 - **In one sentence:** stores one downloaded results file in the database, replacing an older copy of
   it.
 - **Gets:** the file's name (`choice`, like `"NVO 7th grade - 2025/2026"`), its kind, its ID on the
@@ -627,7 +627,7 @@ click the green **Check for new results** button.
   values into SQL text yourself.
 - **Called by:** `update_database()`.
 
-#### `stored_files()`: [line 392](alex_school_results.py#L392)
+#### `stored_files()`: [line 392](../alex_school_results.py#L392)
 - **In one sentence:** lists every results file in the database.
 - **Gives back:** the same kind of dictionary as `list_exam_files()`: *"exam - year" → (kind, file
   ID)*. This dictionary fills the "Exam and school year" list on the page.
@@ -636,7 +636,7 @@ click the green **Check for new results** button.
   by exam, files of the same exam keep the year order from the first sort.
 - **Called by:** `main()`, `update_database()`, `check_for_new_results()`.
 
-#### `read_results(choice, kind)`: [line 409](alex_school_results.py#L409)
+#### `read_results(choice, kind)`: [line 409](../alex_school_results.py#L409)
 - **In one sentence:** reads one exam and year from the database, as a table with the page's column
   names.
 - **Example:** `read_results("NVO 7th grade - 2025/2026", "nvo")` gives the 1,702 schools in about
@@ -648,7 +648,7 @@ click the green **Check for new results** button.
      into whole numbers (`Int64`).
 - **Called by:** `load_choice()`, `main()`.
 
-#### `update_database()`: [line 426](alex_school_results.py#L426)
+#### `update_database()`: [line 426](../alex_school_results.py#L426)
 - **In one sentence:** asks the portal for its list of results files, and downloads only the ones the
   database doesn't have yet, or that the ministry has replaced.
 - **Gives back:** the list of files that were added or replaced. It's empty if nothing was new.
@@ -662,7 +662,7 @@ click the green **Check for new results** button.
 - **Called by:** `main()` (only when the database is empty) and `check_for_new_results()` (the green
   button).
 
-#### `database_status()`: [line 455](alex_school_results.py#L455)
+#### `database_status()`: [line 455](../alex_school_results.py#L455)
 - **In one sentence:** writes the line at the top of the page, like *"Data: 25 results files in the
   local database (school_results.db) · last checked on data.egov.bg: 2026-11-25 13:22"*.
 - **How:** it asks the database two questions in SQL: `SELECT COUNT(*) FROM files` (how many files)
@@ -670,7 +670,7 @@ click the green **Check for new results** button.
   says "never".
 - **Called by:** `build_page()` and `check_for_new_results()`.
 
-#### `load_choice(exam_files, choice)`: [line 469](alex_school_results.py#L469)
+#### `load_choice(exam_files, choice)`: [line 469](../alex_school_results.py#L469)
 - **In one sentence:** turns what you picked in the "Exam and school year" list into the results
   table, from the database, or shows an error message on the page.
 - **Gets:** the files dictionary and your choice, e.g. `"DZI (matura) - 2025/2026"`.
@@ -687,7 +687,7 @@ click the green **Check for new results** button.
 
 ### Group 4: Choosing and ranking
 
-#### `town_choices(exam_files, choice, region)`: [line 511](alex_school_results.py#L511)
+#### `town_choices(exam_files, choice, region)`: [line 511](../alex_school_results.py#L511)
 - **In one sentence:** makes the list of towns for the "Town" dropdown.
 - **Gives back:** a list that starts with `"All towns"`, then the towns in alphabetical order, e.g.
   `"ГР.ВАРНА (ВАРНА)"`.
@@ -698,7 +698,7 @@ click the green **Check for new results** button.
 - **Called by:** `build_page()` (the first list) and `refresh_towns()` (when the exam or region
   changes).
 
-#### `rank_towns(table, kind, min_students)`: [line 524](alex_school_results.py#L524)
+#### `rank_towns(table, kind, min_students)`: [line 524](../alex_school_results.py#L524)
 - **In one sentence:** makes a ranking of the towns, best first.
 - **Gives back:** a table with one row per town: `#`, Town, Region, Schools, Students, the two
   averages, and "Both subjects".
@@ -712,7 +712,7 @@ click the green **Check for new results** button.
 - **`min_students`:** 100 for the whole of Bulgaria, 30 inside one region.
 - **Called by:** `show_results()` (the rank of your town) and `write_overview()` (the top 5).
 
-#### `rank_schools(table, kind)`: [line 548](alex_school_results.py#L548)
+#### `rank_schools(table, kind)`: [line 548](../alex_school_results.py#L548)
 - **In one sentence:** the same as `rank_towns()`, but for schools.
 - **How:**
   1. It keeps only schools with at least 10 students in each exam (`MIN_SCHOOL_STUDENTS`).
@@ -722,7 +722,7 @@ click the green **Check for new results** button.
   2. It calculates "Both subjects", sorts the schools, and numbers them.
 - **Called by:** `write_overview()`.
 
-#### `show_results(exam_files, choice, region, town, search, rank_by)`: [line 565](alex_school_results.py#L565)
+#### `show_results(exam_files, choice, region, town, search, rank_by)`: [line 565](../alex_school_results.py#L565)
 - **In one sentence:** makes everything on the "Schools" tab: the summary text and the table.
 - **Gets:** your 5 choices from the page: exam, region, town, search text, and "rank by".
   **Gives back two values:** the summary (Markdown text) and the table.
@@ -744,7 +744,7 @@ click the green **Check for new results** button.
 
 ### Group 5: The AI overview
 
-#### `ollama_problem()`: [line 637](alex_school_results.py#L637)
+#### `ollama_problem()`: [line 637](../alex_school_results.py#L637)
 - **In one sentence:** checks whether the AI is ready: Ollama is running and gemma4 is downloaded.
 - **Gives back:** `None` if all is fine ("no problem"), otherwise a message that says what's wrong.
 - **How:**
@@ -757,7 +757,7 @@ click the green **Check for new results** button.
   there isn't one. That's why the code reads `if problem:`.
 - **Called by:** `main()` (a warning at the start) and `write_overview()` (before asking the AI).
 
-#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [line 653](alex_school_results.py#L653)
+#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [line 653](../alex_school_results.py#L653)
 - **In one sentence:** writes the "letter" to the AI: our rules plus the facts.
 - **Gives back:** a list of two messages:
   - `{"role": "system", ...}`: the rules, from `overview_system_prompt` at the top of the file.
@@ -767,7 +767,7 @@ click the green **Check for new results** button.
   keeps the Cyrillic letters readable.
 - **Called by:** `write_overview()`.
 
-#### `template_overview(area, towns, schools)`: [line 677](alex_school_results.py#L677)
+#### `template_overview(area, towns, schools)`: [line 677](../alex_school_results.py#L677)
 - **In one sentence:** writes the overview **without AI**, from the same numbers the AI gets.
 - **When:** if Ollama isn't running, if the model isn't downloaded, or if the AI fails halfway.
 - **Gives back:** Markdown text with the same layout as the AI's: "## Top towns", a numbered list,
@@ -782,7 +782,7 @@ click the green **Check for new results** button.
 - **Good to know:** it's plainer than the AI's text, but **instant and always exact**.
 - **Called by:** `write_overview()`.
 
-#### `write_overview(exam_files, choice, region)`: [line 708](alex_school_results.py#L708)
+#### `write_overview(exam_files, choice, region)`: [line 708](../alex_school_results.py#L708)
 - **In one sentence:** calculates the top 5 towns and schools, shows them, then lets gemma4 write
   the overview word by word.
 - **Special:** it's a **generator**. It uses `yield` instead of `return`, and each `yield` sends an
@@ -811,7 +811,7 @@ click the green **Check for new results** button.
 
 ### Group 6: The map and its three views
 
-#### `schools_in_bulgaria(table)`: [line 772](alex_school_results.py#L772)
+#### `schools_in_bulgaria(table)`: [line 772](../alex_school_results.py#L772)
 - **In one sentence:** leaves out the schools abroad, which have no region on the map.
 - **How:** in Bulgaria every town starts with "ГР." (city) or "С." (village).
   `str.startswith(("ГР.", "С."))` gives `True` for those, and the region must not be "ЧУЖБИНА". The
@@ -821,7 +821,7 @@ click the green **Check for new results** button.
   average.
 - **Called by:** `show_map()` and `region_gaps()`.
 
-#### `subject_score(schools, kind, subject)`: [line 781](alex_school_results.py#L781)
+#### `subject_score(schools, kind, subject)`: [line 781](../alex_school_results.py#L781)
 - **In one sentence:** the average of a group of schools in the chosen subject, weighted by
   students.
 - **Gets:** a group of schools (one region, all cities, all villages, or the whole country), the
@@ -833,7 +833,7 @@ click the green **Check for new results** button.
   gives 60.22.
 - **Called by:** `show_map()` and `region_gaps()`.
 
-#### `school_spread(schools, kind, subject)`: [line 798](alex_school_results.py#L798)
+#### `school_spread(schools, kind, subject)`: [line 798](../alex_school_results.py#L798)
 - **In one sentence:** how spread out the schools' results are, in the chosen subject.
 - **Gives back:** one number, the **standard deviation**: roughly, how far a typical school is from
   the average. A small number means most schools score about the same; a big one means they're far
@@ -846,7 +846,7 @@ click the green **Check for new results** button.
 - **Example:** НВО 7th grade, both subjects: 15.01 points in 2018/2019, 17.55 in 2025/2026.
 - **Called by:** `region_gaps()`.
 
-#### `load_region_map()`: [line 816](alex_school_results.py#L816)
+#### `load_region_map()`: [line 816](../alex_school_results.py#L816)
 - **In one sentence:** reads the borders of the 28 regions from the file `bulgaria_regions.geojson`.
 - **Gives back:** the file's content as a dictionary. For each region it has the name as written in
   the data (e.g. "ВАРНА"), the code (BG-03), the English name, and the border as a list of points.
@@ -855,7 +855,7 @@ click the green **Check for new results** button.
   Bulgaria (66 KB).
 - **Called by:** `show_map()` and `show_change()`.
 
-#### `colour_key(values, zero_label)`: [line 824](alex_school_results.py#L824)
+#### `colour_key(values, zero_label)`: [line 824](../alex_school_results.py#L824)
 - **In one sentence:** works out the colour scale for a set of numbers above and below 0: its two
   ends, and the labels of its key.
 - **Gets:** the numbers (a table column), and the text for the middle of the key, like
@@ -871,7 +871,7 @@ click the green **Check for new results** button.
   "0 = average", "+7", "+13".
 - **Called by:** `region_map()`, `region_bars()` and `trend_heatmap()`.
 
-#### `signed(value, decimals=2)`: [line 840](alex_school_results.py#L840)
+#### `signed(value, decimals=2)`: [line 840](../alex_school_results.py#L840)
 - **In one sentence:** writes a number with its sign, like "+2.14" or "−4.99", for the numbers shown
   on the charts.
 - **`decimals=2`:** a parameter with a **default value**. If you don't give it, it's 2.
@@ -882,13 +882,13 @@ click the green **Check for new results** button.
   `signed(-0.04, 1)` gives "0.0".
 - **Called by:** `region_bars()` and `trend_heatmap()`.
 
-#### `year_labels(years)`: [line 849](alex_school_results.py#L849)
+#### `year_labels(years)`: [line 849](../alex_school_results.py#L849)
 - **In one sentence:** writes school years on two lines, like "2018/" above "2019", so they fit
   under the narrow columns of the trend charts without being slanted.
 - **How:** `year.replace("/", "/<br>")`. In Plotly's labels, `<br>` means "new line".
 - **Called by:** `trend_heatmap()` and `gap_trend_chart()`.
 
-#### `region_map(regions, borders, column, key_title, zero_label)`: [line 857](alex_school_results.py#L857)
+#### `region_map(regions, borders, column, key_title, zero_label)`: [line 857](../alex_school_results.py#L857)
 - **In one sentence:** draws the map, with each region coloured by the numbers in one column of the
   table: its difference from the national average, or how much that difference changed.
 - **Gets:** the table of regions, the borders, the column to colour by (`"Vs Bulgaria"` or
@@ -906,7 +906,7 @@ click the green **Check for new results** button.
   from a different column, so they share this function instead of having two copies of it.
 - **Called by:** `show_map()` and `show_change()`.
 
-#### `region_bars(regions, column, axis_title)`: [line 885](alex_school_results.py#L885)
+#### `region_bars(regions, column, axis_title)`: [line 885](../alex_school_results.py#L885)
 - **In one sentence:** the same 28 regions as a bar chart, highest at the top, with each region's
   exact number written next to its bar.
 - **Why:** a map is good for *where*, and bars are better for *how much*. The written numbers
@@ -920,7 +920,7 @@ click the green **Check for new results** button.
      bottom.
 - **Called by:** `show_map()` and `show_change()`.
 
-#### `show_map(exam_files, choice, subject)`: [line 920](alex_school_results.py#L920)
+#### `show_map(exam_files, choice, subject)`: [line 920](../alex_school_results.py#L920)
 - **In one sentence:** makes everything on the "Map and trends of the regions" tab: the summary of the gaps, the
   map and the bar chart.
 - **Gets:** the chosen exam and year, and the subject from "Colour by". **Gives back three values:**
@@ -942,7 +942,7 @@ click the green **Check for new results** button.
   points".
 - **Called by:** `map_view()` on the page, for the "Difference from Bulgaria" view.
 
-#### `exam_years(exam_files, choice)`: [line 969](alex_school_results.py#L969)
+#### `exam_years(exam_files, choice)`: [line 969](../alex_school_results.py#L969)
 - **In one sentence:** finds all the years of the chosen exam, oldest first.
 - **How:** a choice looks like "NVO 7th grade - 2025/2026". `rsplit(" - ", 1)` cuts it at the
   **last** " - " into the exam ("NVO 7th grade") and the year. The function keeps the files of the
@@ -951,7 +951,7 @@ click the green **Check for new results** button.
   "NVO 7th grade - 2018/2019" to "NVO 7th grade - 2025/2026".
 - **Called by:** `show_change()` and `show_trends()`.
 
-#### `region_gaps(exam_files, choices, subject)`: [line 978](alex_school_results.py#L978)
+#### `region_gaps(exam_files, choices, subject)`: [line 978](../alex_school_results.py#L978)
 - **In one sentence:** for each of the given exam years, how far each region is from that year's
   national average.
 - **Gets:** the files, a list of choices (2 years for the change, all the years for the trends) and
@@ -970,7 +970,7 @@ click the green **Check for new results** button.
   compared.
 - **Called by:** `show_change()` and `show_trends()`.
 
-#### `show_change(exam_files, choice, subject)`: [line 999](alex_school_results.py#L999)
+#### `show_change(exam_files, choice, subject)`: [line 999](../alex_school_results.py#L999)
 - **In one sentence:** makes the "Change since the previous year" view: how far each region moved
   compared with the national average since the year before.
 - **Gives back three values,** like `show_map()`: the summary, the map and the bar chart.
@@ -989,7 +989,7 @@ click the green **Check for new results** button.
   behind most ЯМБОЛ −4.99, typical movement 0.98 points.
 - **Called by:** `map_view()` on the page.
 
-#### `show_trends(exam_files, choice, subject)`: [line 1044](alex_school_results.py#L1044)
+#### `show_trends(exam_files, choice, subject)`: [line 1044](../alex_school_results.py#L1044)
 - **In one sentence:** makes the "Trends over the years" view: every region's distance from the
   national average, in every year of the chosen exam.
 - **Gives back three values:** the summary, the grid of regions and years (`trend_heatmap()`), and
@@ -1011,7 +1011,7 @@ click the green **Check for new results** button.
   every year.
 - **Called by:** `map_view()` on the page.
 
-#### `drift_words(change)`: [line 1089](alex_school_results.py#L1089)
+#### `drift_words(change)`: [line 1089](../alex_school_results.py#L1089)
 - **In one sentence:** puts the change in the gap (compared with the spread) into words: "the regions
   drifted apart", "the regions came closer" or "about the same".
 - **How:** two `if`s. A change smaller than 0.05 either way counts as "about the same", because it's
@@ -1020,7 +1020,7 @@ click the green **Check for new results** button.
   1.28 to 1.21, so `drift_words(-0.07)` gives "the regions came closer".
 - **Called by:** `show_trends()`.
 
-#### `trend_heatmap(gaps, unit)`: [line 1101](alex_school_results.py#L1101)
+#### `trend_heatmap(gaps, unit)`: [line 1101](../alex_school_results.py#L1101)
 - **In one sentence:** draws the grid with one row per region and one column per school year, each
   cell coloured by the region's distance from the national average, with the number written in it.
 - **How:**
@@ -1032,7 +1032,7 @@ click the green **Check for new results** button.
      `year_labels()`.
 - **Called by:** `show_trends()`.
 
-#### `gap_trend_chart(spread, relative, unit)`: [line 1136](alex_school_results.py#L1136)
+#### `gap_trend_chart(spread, relative, unit)`: [line 1136](../alex_school_results.py#L1136)
 - **In one sentence:** a line chart of the gap between the best and the worst region, year by year.
   A rising line means the regions are drifting apart.
 - **Gets:** the gaps in points or grades (`spread`), the same gaps divided by the spread of the
@@ -1050,7 +1050,7 @@ click the green **Check for new results** button.
 
 ### Group 7: The web page and the start
 
-#### `build_page(exam_files, regions)`: [line 1170](alex_school_results.py#L1170)
+#### `build_page(exam_files, regions)`: [line 1170](../alex_school_results.py#L1170)
 - **In one sentence:** builds the web page (lists, buttons, tabs, tables) and decides which
   function runs when you click or change something.
 - **Gets:** the files dictionary and the list of regions. **Gives back:** the page, which `main()`
@@ -1117,7 +1117,7 @@ click the green **Check for new results** button.
   - The Town list uses `.input`, so the results aren't shown twice when `refresh_towns()` resets
     the town.
 
-#### `main()`: [line 1351](alex_school_results.py#L1351)
+#### `main()`: [line 1351](../alex_school_results.py#L1351)
 - **In one sentence:** the starting point: it gets the data ready from the database, builds the page
   and opens it in your browser.
 - **How:**

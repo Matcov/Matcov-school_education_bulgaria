@@ -1,7 +1,7 @@
 # Как работает `alex_school_results.py` — простыми словами
 
 Это руководство для тех, кто **только начинает изучать Python**. Оно простыми словами объясняет
-каждую функцию (`def`) в [alex_school_results.py](alex_school_results.py), а затем показывает, как
+каждую функцию (`def`) в [alex_school_results.py](../alex_school_results.py), а затем показывает, как
 они работают вместе.
 
 Как читать:
@@ -441,7 +441,7 @@ check_for_new_results()
 
 ### Группа 1: Маленькие помощники
 
-#### `tidy(text)`: [строка 202](alex_school_results.py#L202)
+#### `tidy(text)`: [строка 202](../alex_school_results.py#L202)
 - **Одним предложением:** делает название удобным для сравнения с другим названием.
 - **Получает:** текст. **Возвращает:** тот же текст строчными буквами, с одиночными пробелами и без
   точки в конце.
@@ -453,7 +453,7 @@ check_for_new_results()
   точку в конце.
 - **Вызывается из:** `find_exam_datasets()`.
 
-#### `tidy_town(town)`: [строка 209](alex_school_results.py#L209)
+#### `tidy_town(town)`: [строка 209](../alex_school_results.py#L209)
 - **Одним предложением:** делает так, чтобы один и тот же населённый пункт выглядел одинаково во
   всех файлах.
 - **Примеры:** `"ГР. СОФИЯ"` → `"ГР.СОФИЯ"` · `"Прага"` → `"ПРАГА"` ·
@@ -466,7 +466,7 @@ check_for_new_results()
      «ГР.СОФИЯ».
 - **Вызывается из:** `download_results()`, для каждой школы.
 
-#### `to_number(text)`: [строка 306](alex_school_results.py#L306)
+#### `to_number(text)`: [строка 306](../alex_school_results.py#L306)
 - **Одним предложением:** превращает ячейку файла в число или в `None`, если результата нет.
 - **Примеры:** `"52.4"` → `52.4` · `"3,09"` → `3.09` (десятичная запятая) · `""` → `None` ·
   `"0"` → `None` (ноль значит, что этот экзамен никто не сдавал) · `"Област"` → `None`
@@ -475,7 +475,7 @@ check_for_new_results()
   `return value or None`, превращает `0` в `None`.
 - **Вызывается из:** `download_results()`, для каждой ячейки.
 
-#### `weighted_average(table, count_column, average_column)`: [строка 483](alex_school_results.py#L483)
+#### `weighted_average(table, count_column, average_column)`: [строка 483](../alex_school_results.py#L483)
 - **Одним предложением:** среднее значение по всем **ученикам**, а не по школам.
 - **Зачем:** школа со 100 учениками должна весить больше, чем школа с 5.
 - **Пример:** в школе А 100 учеников со средним результатом 60; в школе Б 5 учеников с 90.
@@ -486,13 +486,13 @@ check_for_new_results()
   результат для каждой школы, всё складывает и делит на общее число учеников.
 - **Вызывается из:** `rank_towns()`, `show_results()`, `write_overview()`, `subject_score()`.
 
-#### `town_label(town, region)`: [строка 495](alex_school_results.py#L495)
+#### `town_label(town, region)`: [строка 495](../alex_school_results.py#L495)
 - **Одним предложением:** составляет текст, который показывается в списке населённых пунктов.
 - **Пример:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **Зачем область:** у многих сёл одинаковые названия в разных областях.
 - **Вызывается из:** `town_choices()`.
 
-#### `split_town_label(label)`: [строка 503](alex_school_results.py#L503)
+#### `split_town_label(label)`: [строка 503](../alex_school_results.py#L503)
 - **Одним предложением:** обратное действие к `town_label()`: снова разделяет населённый пункт и
   область.
 - **Пример:** `"ГР.ВАРНА (ВАРНА)"` → `("ГР.ВАРНА", "ВАРНА")`
@@ -507,7 +507,7 @@ check_for_new_results()
 Эти функции используются **только для заполнения или обновления базы данных**: в самый первый раз
 и когда вы нажимаете зелёную кнопку **Check for new results**.
 
-#### `call_portal(method, payload)`: [строка 223](alex_school_results.py#L223)
+#### `call_portal(method, payload)`: [строка 223](../alex_school_results.py#L223)
 - **Одним предложением:** отправляет один вопрос порталу открытых данных (data.egov.bg) и
   возвращает его ответ.
 - **Получает:** название вопроса (`method`), например `"listResources"`, и его подробности
@@ -525,7 +525,7 @@ check_for_new_results()
   исправлять нужно будет только в одном месте.
 - **Вызывается из:** `find_exam_datasets()`, `list_exam_files()`, `download_results()`.
 
-#### `find_ministry_on_portal()`: [строка 236](alex_school_results.py#L236)
+#### `find_ministry_on_portal()`: [строка 236](../alex_school_results.py#L236)
 - **Одним предложением:** читает страницу «Открытые данные» на mon.bg и находит идентификатор (ID)
   министерства на портале.
 - **Получает:** ничего. **Возвращает:** ID, текст вида `"a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"`.
@@ -539,7 +539,7 @@ check_for_new_results()
 - **Вызывается из:** `update_database()`. Если mon.bg не работает, `update_database()` использует
   `KNOWN_MINISTRY_ID`.
 
-#### `find_exam_datasets(ministry_id)`: [строка 252](alex_school_results.py#L252)
+#### `find_exam_datasets(ministry_id)`: [строка 252](../alex_school_results.py#L252)
 - **Одним предложением:** находит 4 набора данных об экзаменах (НВО в 4, 7 и 10 классе и ДЗИ)
   среди примерно 350 наборов министерства.
 - **Возвращает:** словарь *экзамен → ID набора*, например `{"NVO 7th grade": "b56288b6-...", ...}`
@@ -554,7 +554,7 @@ check_for_new_results()
   пара (вид, название). Здесь нужно только название, поэтому вид получает имя «не нужно» — `_`.
 - **Вызывается из:** `update_database()`.
 
-#### `list_exam_files(exam_datasets)`: [строка 282](alex_school_results.py#L282)
+#### `list_exam_files(exam_datasets)`: [строка 282](../alex_school_results.py#L282)
 - **Одним предложением:** перечисляет годовые файлы каждого экзамена на портале и даёт каждому
   понятное имя вроде `"NVO 7th grade - 2025/2026"`.
 - **Возвращает:** словарь *«экзамен - год» → (вид, ID файла)*, например
@@ -568,7 +568,7 @@ check_for_new_results()
   4. Сортирует файлы так, чтобы самый новый год был первым.
 - **Вызывается из:** `update_database()`, которая сравнивает этот список со списком в базе.
 
-#### `download_results(kind, resource_id)`: [строка 318](alex_school_results.py#L318)
+#### `download_results(kind, resource_id)`: [строка 318](../alex_school_results.py#L318)
 - **Одним предложением:** скачивает один файл с результатами с портала и превращает его в чистую
   таблицу, по одной строке на школу.
 - **Получает:** вид (`"nvo"` или `"dzi"`) и ID файла. **Возвращает:** таблицу со столбцами Region,
@@ -600,7 +600,7 @@ check_for_new_results()
 
 ### Группа 3: База данных
 
-#### `open_database()`: [строка 364](alex_school_results.py#L364)
+#### `open_database()`: [строка 364](../alex_school_results.py#L364)
 - **Одним предложением:** открывает файл базы данных `school_results.db` и создаёт его вместе с
   таблицами, если их ещё нет.
 - **Возвращает:** открытое **соединение** (connection) с базой — линию, по которой Python с ней
@@ -615,7 +615,7 @@ check_for_new_results()
 - **Вызывается из:** `save_results()`, `stored_files()`, `read_results()`, `update_database()`,
   `database_status()`.
 
-#### `save_results(choice, kind, resource_id, table)`: [строка 374](alex_school_results.py#L374)
+#### `save_results(choice, kind, resource_id, table)`: [строка 374](../alex_school_results.py#L374)
 - **Одним предложением:** сохраняет один скачанный файл с результатами в базе, заменяя его старую
   копию.
 - **Получает:** имя файла (`choice`, например `"NVO 7th grade - 2025/2026"`), его вид, его ID на
@@ -633,7 +633,7 @@ check_for_new_results()
   вставляйте значения прямо в текст SQL.
 - **Вызывается из:** `update_database()`.
 
-#### `stored_files()`: [строка 392](alex_school_results.py#L392)
+#### `stored_files()`: [строка 392](../alex_school_results.py#L392)
 - **Одним предложением:** перечисляет все файлы с результатами в базе.
 - **Возвращает:** такой же словарь, как `list_exam_files()`: *«экзамен - год» → (вид, ID файла)*.
   Этот словарь заполняет список «Exam and school year» на странице.
@@ -643,7 +643,7 @@ check_for_new_results()
   из первой сортировки.
 - **Вызывается из:** `main()`, `update_database()`, `check_for_new_results()`.
 
-#### `read_results(choice, kind)`: [строка 409](alex_school_results.py#L409)
+#### `read_results(choice, kind)`: [строка 409](../alex_school_results.py#L409)
 - **Одним предложением:** читает один экзамен и год из базы в виде таблицы с названиями столбцов,
   как на странице.
 - **Пример:** `read_results("NVO 7th grade - 2025/2026", "nvo")` даёт 1702 школы примерно за
@@ -655,7 +655,7 @@ check_for_new_results()
      в целые числа (`Int64`).
 - **Вызывается из:** `load_choice()`, `main()`.
 
-#### `update_database()`: [строка 426](alex_school_results.py#L426)
+#### `update_database()`: [строка 426](../alex_school_results.py#L426)
 - **Одним предложением:** спрашивает у портала список файлов и скачивает только те, которых в базе
   ещё нет или которые министерство заменило.
 - **Возвращает:** список добавленных или заменённых файлов. Он пустой, если ничего нового нет.
@@ -669,7 +669,7 @@ check_for_new_results()
 - **Вызывается из:** `main()` (только когда база пуста) и `check_for_new_results()` (зелёная
   кнопка).
 
-#### `database_status()`: [строка 455](alex_school_results.py#L455)
+#### `database_status()`: [строка 455](../alex_school_results.py#L455)
 - **Одним предложением:** пишет строку вверху страницы, например *«Data: 25 results files in the
   local database (school_results.db) · last checked on data.egov.bg: 2026-11-25 13:22»*.
 - **Как:** задаёт базе два вопроса на SQL: `SELECT COUNT(*) FROM files` (сколько файлов) и
@@ -677,7 +677,7 @@ check_for_new_results()
   пишет «never».
 - **Вызывается из:** `build_page()` и `check_for_new_results()`.
 
-#### `load_choice(exam_files, choice)`: [строка 469](alex_school_results.py#L469)
+#### `load_choice(exam_files, choice)`: [строка 469](../alex_school_results.py#L469)
 - **Одним предложением:** превращает то, что вы выбрали в списке «Exam and school year», в таблицу
   с результатами из базы данных — или показывает сообщение об ошибке на странице.
 - **Получает:** словарь файлов и ваш выбор, например `"DZI (matura) - 2025/2026"`.
@@ -694,7 +694,7 @@ check_for_new_results()
 
 ### Группа 4: Выбор и рейтинг
 
-#### `town_choices(exam_files, choice, region)`: [строка 511](alex_school_results.py#L511)
+#### `town_choices(exam_files, choice, region)`: [строка 511](../alex_school_results.py#L511)
 - **Одним предложением:** составляет список населённых пунктов для выпадающего списка «Town».
 - **Возвращает:** список, который начинается с `"All towns"`, а затем идут населённые пункты в
   алфавитном порядке, например `"ГР.ВАРНА (ВАРНА)"`.
@@ -705,7 +705,7 @@ check_for_new_results()
 - **Вызывается из:** `build_page()` (первый список) и `refresh_towns()` (при смене экзамена или
   области).
 
-#### `rank_towns(table, kind, min_students)`: [строка 524](alex_school_results.py#L524)
+#### `rank_towns(table, kind, min_students)`: [строка 524](../alex_school_results.py#L524)
 - **Одним предложением:** составляет рейтинг населённых пунктов, лучшие первыми.
 - **Возвращает:** таблицу, по одной строке на населённый пункт: `#`, Town, Region, Schools,
   Students, два средних значения и «Both subjects».
@@ -722,7 +722,7 @@ check_for_new_results()
 - **Вызывается из:** `show_results()` (место вашего населённого пункта) и `write_overview()`
   (первая пятёрка).
 
-#### `rank_schools(table, kind)`: [строка 548](alex_school_results.py#L548)
+#### `rank_schools(table, kind)`: [строка 548](../alex_school_results.py#L548)
 - **Одним предложением:** то же, что `rank_towns()`, но для школ.
 - **Как:**
   1. Оставляет только школы, где каждый экзамен сдавали хотя бы 10 учеников
@@ -733,7 +733,7 @@ check_for_new_results()
   2. Вычисляет «Both subjects», сортирует школы и нумерует их.
 - **Вызывается из:** `write_overview()`.
 
-#### `show_results(exam_files, choice, region, town, search, rank_by)`: [строка 565](alex_school_results.py#L565)
+#### `show_results(exam_files, choice, region, town, search, rank_by)`: [строка 565](../alex_school_results.py#L565)
 - **Одним предложением:** готовит всё содержимое вкладки «Schools»: сводку и таблицу.
 - **Получает:** пять ваших вариантов выбора на странице: экзамен, область, населённый пункт, текст
   для поиска и «сортировать по». **Возвращает два значения:** сводку (текст в формате Markdown) и
@@ -757,7 +757,7 @@ check_for_new_results()
 
 ### Группа 5: Обзор от ИИ
 
-#### `ollama_problem()`: [строка 637](alex_school_results.py#L637)
+#### `ollama_problem()`: [строка 637](../alex_school_results.py#L637)
 - **Одним предложением:** проверяет, готов ли ИИ: работает ли Ollama и скачана ли модель gemma4.
 - **Возвращает:** `None`, если всё в порядке («проблемы нет»), иначе — сообщение о том, что не так.
 - **Как:**
@@ -771,7 +771,7 @@ check_for_new_results()
 - **Вызывается из:** `main()` (предупреждение при запуске) и `write_overview()` (перед тем как
   обратиться к ИИ).
 
-#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [строка 653](alex_school_results.py#L653)
+#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [строка 653](../alex_school_results.py#L653)
 - **Одним предложением:** пишет «письмо» для ИИ: наши правила плюс факты.
 - **Возвращает:** список из двух сообщений:
   - `{"role": "system", ...}`: правила из `overview_system_prompt` в начале файла.
@@ -781,7 +781,7 @@ check_for_new_results()
   `ensure_ascii=False` сохраняет кириллицу читаемой.
 - **Вызывается из:** `write_overview()`.
 
-#### `template_overview(area, towns, schools)`: [строка 677](alex_school_results.py#L677)
+#### `template_overview(area, towns, schools)`: [строка 677](../alex_school_results.py#L677)
 - **Одним предложением:** пишет обзор **без ИИ**, из тех же чисел, которые получает ИИ.
 - **Когда:** если Ollama не работает, если модель не скачана или если ИИ сломался посередине.
 - **Возвращает:** текст в формате Markdown с тем же оформлением, что у ИИ: «## Top towns»,
@@ -796,7 +796,7 @@ check_for_new_results()
 - **Полезно знать:** текст проще, чем у ИИ, но **мгновенный и всегда точный**.
 - **Вызывается из:** `write_overview()`.
 
-#### `write_overview(exam_files, choice, region)`: [строка 708](alex_school_results.py#L708)
+#### `write_overview(exam_files, choice, region)`: [строка 708](../alex_school_results.py#L708)
 - **Одним предложением:** вычисляет пятёрку лучших населённых пунктов и школ, показывает их, а
   затем даёт gemma4 написать обзор слово за словом.
 - **Особенность:** это **генератор**. Он использует `yield` вместо `return`, и каждый `yield`
@@ -825,7 +825,7 @@ check_for_new_results()
 
 ### Группа 6: Карта и три её вида
 
-#### `schools_in_bulgaria(table)`: [строка 772](alex_school_results.py#L772)
+#### `schools_in_bulgaria(table)`: [строка 772](../alex_school_results.py#L772)
 - **Одним предложением:** убирает школы за границей, у которых нет области на карте.
 - **Как:** в Болгарии название каждого населённого пункта начинается с «ГР.» (город) или «С.»
   (село). `str.startswith(("ГР.", "С."))` даёт `True` для таких пунктов, а область не должна быть
@@ -835,7 +835,7 @@ check_for_new_results()
   Софии.
 - **Вызывается из:** `show_map()` и `region_gaps()`.
 
-#### `subject_score(schools, kind, subject)`: [строка 781](alex_school_results.py#L781)
+#### `subject_score(schools, kind, subject)`: [строка 781](../alex_school_results.py#L781)
 - **Одним предложением:** среднее значение группы школ по выбранному предмету, взвешенное по числу
   учеников.
 - **Получает:** группу школ (одну область, все города, все сёла или всю страну), вид экзамена и
@@ -847,7 +847,7 @@ check_for_new_results()
   СОФИЯ-ГРАД — 60,22.
 - **Вызывается из:** `show_map()` и `region_gaps()`.
 
-#### `school_spread(schools, kind, subject)`: [строка 798](alex_school_results.py#L798)
+#### `school_spread(schools, kind, subject)`: [строка 798](../alex_school_results.py#L798)
 - **Одним предложением:** насколько разбросаны результаты школ по выбранному предмету.
 - **Возвращает:** одно число — **стандартное отклонение**: грубо говоря, насколько обычная школа
   далека от среднего. Маленькое число значит, что у большинства школ примерно одинаковые
@@ -861,7 +861,7 @@ check_for_new_results()
 - **Пример:** НВО 7 класс, оба предмета: 15,01 балла в 2018/2019 и 17,55 в 2025/2026.
 - **Вызывается из:** `region_gaps()`.
 
-#### `load_region_map()`: [строка 816](alex_school_results.py#L816)
+#### `load_region_map()`: [строка 816](../alex_school_results.py#L816)
 - **Одним предложением:** читает границы 28 областей из файла `bulgaria_regions.geojson`.
 - **Возвращает:** содержимое файла в виде словаря. Для каждой области там есть название, как в
   данных (например, «ВАРНА»), код (BG-03), английское название и граница в виде списка точек.
@@ -870,7 +870,7 @@ check_for_new_results()
   domain); оставлена только Болгария (66 КБ).
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `colour_key(values, zero_label)`: [строка 824](alex_school_results.py#L824)
+#### `colour_key(values, zero_label)`: [строка 824](../alex_school_results.py#L824)
 - **Одним предложением:** вычисляет цветовую шкалу для набора чисел выше и ниже 0: два её конца и
   подписи её легенды.
 - **Получает:** числа (столбец таблицы) и текст для середины легенды, например «0 = average» или
@@ -886,7 +886,7 @@ check_for_new_results()
   «0 = average», «+7», «+13».
 - **Вызывается из:** `region_map()`, `region_bars()` и `trend_heatmap()`.
 
-#### `signed(value, decimals=2)`: [строка 840](alex_school_results.py#L840)
+#### `signed(value, decimals=2)`: [строка 840](../alex_school_results.py#L840)
 - **Одним предложением:** пишет число со знаком, например «+2.14» или «−4.99», для чисел на
   диаграммах.
 - **`decimals=2`:** параметр со **значением по умолчанию**. Если его не передать, он равен 2.
@@ -897,13 +897,13 @@ check_for_new_results()
   даёт «0.0».
 - **Вызывается из:** `region_bars()` и `trend_heatmap()`.
 
-#### `year_labels(years)`: [строка 849](alex_school_results.py#L849)
+#### `year_labels(years)`: [строка 849](../alex_school_results.py#L849)
 - **Одним предложением:** пишет учебные годы в две строки, например «2018/» над «2019», чтобы они
   помещались под узкими столбцами диаграмм тенденций и не были наклонены.
 - **Как:** `year.replace("/", "/<br>")`. В подписях Plotly `<br>` означает «новая строка».
 - **Вызывается из:** `trend_heatmap()` и `gap_trend_chart()`.
 
-#### `region_map(regions, borders, column, key_title, zero_label)`: [строка 857](alex_school_results.py#L857)
+#### `region_map(regions, borders, column, key_title, zero_label)`: [строка 857](../alex_school_results.py#L857)
 - **Одним предложением:** рисует карту, окрашивая каждую область по числам из одного столбца
   таблицы: её отличию от среднего по стране или тому, насколько это отличие изменилось.
 - **Получает:** таблицу областей, границы, столбец, по которому окрашивать (`"Vs Bulgaria"` или
@@ -922,7 +922,7 @@ check_for_new_results()
   по разным столбцам, поэтому они используют эту функцию вместе, а не две её копии.
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `region_bars(regions, column, axis_title)`: [строка 885](alex_school_results.py#L885)
+#### `region_bars(regions, column, axis_title)`: [строка 885](../alex_school_results.py#L885)
 - **Одним предложением:** те же 28 областей в виде столбчатой диаграммы, самые высокие значения
   сверху, с точным числом каждой области, написанным рядом с её столбцом.
 - **Зачем:** карта хорошо показывает, *где*, а столбцы — *насколько*. Написанные числа (например,
@@ -936,7 +936,7 @@ check_for_new_results()
      рисует первую строку внизу.
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `show_map(exam_files, choice, subject)`: [строка 920](alex_school_results.py#L920)
+#### `show_map(exam_files, choice, subject)`: [строка 920](../alex_school_results.py#L920)
 - **Одним предложением:** готовит всё содержимое вкладки «Map and trends of the regions»: сводку различий,
   карту и столбчатую диаграмму.
 - **Получает:** выбранный экзамен и год, а также предмет из «Colour by». **Возвращает три
@@ -955,7 +955,7 @@ check_for_new_results()
   · gap: 26.79 points», затем «Cities (ГР.): 49.68 · villages (С.): 30.95 · gap: 18.73 points».
 - **Вызывается из:** `map_view()` на странице, для вида «Difference from Bulgaria».
 
-#### `exam_years(exam_files, choice)`: [строка 969](alex_school_results.py#L969)
+#### `exam_years(exam_files, choice)`: [строка 969](../alex_school_results.py#L969)
 - **Одним предложением:** находит все годы выбранного экзамена, от самого старого.
 - **Как:** выбор выглядит как «NVO 7th grade - 2025/2026». `rsplit(" - ", 1)` разрезает его по
   **последнему** « - » на экзамен («NVO 7th grade») и год. Функция оставляет файлы того же экзамена
@@ -964,7 +964,7 @@ check_for_new_results()
   «NVO 7th grade - 2018/2019» до «NVO 7th grade - 2025/2026».
 - **Вызывается из:** `show_change()` и `show_trends()`.
 
-#### `region_gaps(exam_files, choices, subject)`: [строка 978](alex_school_results.py#L978)
+#### `region_gaps(exam_files, choices, subject)`: [строка 978](../alex_school_results.py#L978)
 - **Одним предложением:** для каждого из заданных лет экзамена — насколько каждая область далека от
   среднего по стране в том же году.
 - **Получает:** файлы, список вариантов выбора (2 года для изменения, все годы для тенденций) и
@@ -983,7 +983,7 @@ check_for_new_results()
   хуже. Расстояние области от среднего по стране убирает этот эффект, и годы можно сравнивать.
 - **Вызывается из:** `show_change()` и `show_trends()`.
 
-#### `show_change(exam_files, choice, subject)`: [строка 999](alex_school_results.py#L999)
+#### `show_change(exam_files, choice, subject)`: [строка 999](../alex_school_results.py#L999)
 - **Одним предложением:** готовит вид «Change since the previous year»: насколько каждая область
   сдвинулась относительно среднего по стране по сравнению с прошлым годом.
 - **Возвращает три значения,** как `show_map()`: сводку, карту и столбчатую диаграмму.
@@ -1002,7 +1002,7 @@ check_for_new_results()
   больше всех отстала ЯМБОЛ −4,99, типичный сдвиг — 0,98 балла.
 - **Вызывается из:** `map_view()` на странице.
 
-#### `show_trends(exam_files, choice, subject)`: [строка 1044](alex_school_results.py#L1044)
+#### `show_trends(exam_files, choice, subject)`: [строка 1044](../alex_school_results.py#L1044)
 - **Одним предложением:** готовит вид «Trends over the years»: расстояние каждой области от среднего
   по стране в каждом году выбранного экзамена.
 - **Возвращает три значения:** сводку, сетку областей и лет (`trend_heatmap()`) и линейную диаграмму
@@ -1024,7 +1024,7 @@ check_for_new_results()
   году.
 - **Вызывается из:** `map_view()` на странице.
 
-#### `drift_words(change)`: [строка 1089](alex_school_results.py#L1089)
+#### `drift_words(change)`: [строка 1089](../alex_school_results.py#L1089)
 - **Одним предложением:** описывает словами изменение разрыва (по сравнению с разбросом): «the
   regions drifted apart» (области разошлись), «the regions came closer» (области сблизились) или
   «about the same» (примерно так же).
@@ -1034,7 +1034,7 @@ check_for_new_results()
   1,28 до 1,21, поэтому `drift_words(-0.07)` даёт «the regions came closer».
 - **Вызывается из:** `show_trends()`.
 
-#### `trend_heatmap(gaps, unit)`: [строка 1101](alex_school_results.py#L1101)
+#### `trend_heatmap(gaps, unit)`: [строка 1101](../alex_school_results.py#L1101)
 - **Одним предложением:** рисует сетку, где одна строка — это область, а один столбец — учебный год;
   каждая клетка окрашена по расстоянию области от среднего по стране, и в ней написано число.
 - **Как:**
@@ -1046,7 +1046,7 @@ check_for_new_results()
      `year_labels()`.
 - **Вызывается из:** `show_trends()`.
 
-#### `gap_trend_chart(spread, relative, unit)`: [строка 1136](alex_school_results.py#L1136)
+#### `gap_trend_chart(spread, relative, unit)`: [строка 1136](../alex_school_results.py#L1136)
 - **Одним предложением:** линейная диаграмма разрыва между лучшей и худшей областью, год за годом.
   Линия, которая идёт вверх, значит, что области расходятся.
 - **Получает:** разрывы в баллах или оценках (`spread`), те же разрывы, делённые на разброс
@@ -1064,7 +1064,7 @@ check_for_new_results()
 
 ### Группа 7: Веб-страница и запуск
 
-#### `build_page(exam_files, regions)`: [строка 1170](alex_school_results.py#L1170)
+#### `build_page(exam_files, regions)`: [строка 1170](../alex_school_results.py#L1170)
 - **Одним предложением:** строит веб-страницу (списки, кнопки, вкладки, таблицы) и решает, какая
   функция запустится, когда вы что-то нажмёте или измените.
 - **Получает:** словарь файлов и список областей. **Возвращает:** страницу, которую затем открывает
@@ -1133,7 +1133,7 @@ check_for_new_results()
   - Список населённых пунктов использует `.input`, чтобы результаты не показывались дважды, когда
     `refresh_towns()` сбрасывает выбранный пункт.
 
-#### `main()`: [строка 1351](alex_school_results.py#L1351)
+#### `main()`: [строка 1351](../alex_school_results.py#L1351)
 - **Одним предложением:** точка запуска: готовит данные из базы, строит страницу и открывает её в
   браузере.
 - **Как:**

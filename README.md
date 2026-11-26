@@ -8,9 +8,13 @@ changes from year to year**. The data is published by the Ministry of Education 
 - **A green "Check for new results" button** downloads new results when the ministry publishes
   them.
 
-A learning project in Python, written to be easy to read: every function is explained for
-beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgarian.md),
-[Russian](explanation_russian.md) and [Romanian](explanation_romanian.md).
+A learning project in Python, written to be easy to read:
+- **An overview of the project** in [English](Overviews/overview_english.md),
+  [Bulgarian](Overviews/overview_bulgarian.md), [Russian](Overviews/overview_russian.md) and
+  [Romanian](Overviews/overview_romanian.md).
+- **Every function explained for beginners** in [English](Explanations/explanation_english.md),
+  [Bulgarian](Explanations/explanation_bulgarian.md), [Russian](Explanations/explanation_russian.md)
+  and [Romanian](Explanations/explanation_romanian.md).
 
 ![The map of the regions: 28 regions coloured from dark red (far below the national average) to light green (far above), next to a bar chart of all regions](screenshot_map.png)
 
@@ -115,8 +119,8 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 | [requirements.txt](requirements.txt) | The Python packages the app needs |
 | [schools/](schools/) | A snapshot from 17 November 2026: one CSV file per school (2,379 schools), plus the index [_all_schools.csv](schools/_all_schools.csv). The database is the copy that gets updated |
 | [info.md](info.md) | Research notes: where the data is, how the portal's API works, the data's quirks, and the findings |
-| [explanation_english.md](explanation_english.md), [explanation_bulgarian.md](explanation_bulgarian.md), [explanation_russian.md](explanation_russian.md), [explanation_romanian.md](explanation_romanian.md) | Every function explained for Python beginners, with a diagram of how they connect |
-| [overview_bulgarian.md](overview_bulgarian.md) | An overview of the project in Bulgarian |
+| [Overviews/](Overviews/) | An overview of the project: the data, how it's cleaned, the database and the app, in English, Bulgarian, Russian and Romanian |
+| [Explanations/](Explanations/) | Every function explained for Python beginners, with a diagram of how they connect, in English, Bulgarian, Russian and Romanian |
 
 ## Good to know
 

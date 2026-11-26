@@ -1,7 +1,7 @@
 # Cum funcționează `alex_school_results.py`, explicat simplu
 
 Acest ghid este pentru cei care sunt **la început cu Python**. Explică pe înțelesul tuturor fiecare
-funcție (`def`) din [alex_school_results.py](alex_school_results.py) și apoi arată cum lucrează
+funcție (`def`) din [alex_school_results.py](../alex_school_results.py) și apoi arată cum lucrează
 toate împreună.
 
 Cum să-l citești:
@@ -440,7 +440,7 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
 
 ### Grupa 1: Mici ajutoare
 
-#### `tidy(text)`: [linia 202](alex_school_results.py#L202)
+#### `tidy(text)`: [linia 202](../alex_school_results.py#L202)
 - **Într-o propoziție:** face un nume ușor de comparat cu alt nume.
 - **Primește:** un text. **Dă înapoi:** același text cu litere mici, cu spații simple și fără punct
   la sfârșit.
@@ -452,7 +452,7 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
   de la sfârșit.
 - **Apelată de:** `find_exam_datasets()`.
 
-#### `tidy_town(town)`: [linia 209](alex_school_results.py#L209)
+#### `tidy_town(town)`: [linia 209](../alex_school_results.py#L209)
 - **Într-o propoziție:** face ca aceeași localitate să arate la fel în toate fișierele.
 - **Exemple:** `"ГР. СОФИЯ"` → `"ГР.СОФИЯ"` · `"Прага"` → `"ПРАГА"` ·
   `"СОФИЯ 11 РН КРАСНА ПОЛЯНА"` (un cartier din Sofia) → `"ГР.СОФИЯ"`
@@ -464,7 +464,7 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
      „ГР.СОФИЯ”.
 - **Apelată de:** `download_results()`, pentru fiecare școală.
 
-#### `to_number(text)`: [linia 306](alex_school_results.py#L306)
+#### `to_number(text)`: [linia 306](../alex_school_results.py#L306)
 - **Într-o propoziție:** transformă o celulă din fișier într-un număr sau în `None` când nu există
   rezultat.
 - **Exemple:** `"52.4"` → `52.4` · `"3,09"` → `3.09` (virgulă zecimală) · `""` → `None` ·
@@ -474,7 +474,7 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
   `return value or None`, transformă `0` în `None`.
 - **Apelată de:** `download_results()`, pentru fiecare celulă.
 
-#### `weighted_average(table, count_column, average_column)`: [linia 483](alex_school_results.py#L483)
+#### `weighted_average(table, count_column, average_column)`: [linia 483](../alex_school_results.py#L483)
 - **Într-o propoziție:** media pe toți **elevii**, nu pe școli.
 - **De ce:** o școală cu 100 de elevi trebuie să conteze mai mult decât o școală cu 5.
 - **Exemplu:** școala A are 100 de elevi cu media 60; școala B are 5 elevi cu media 90.
@@ -485,13 +485,13 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
   școală, adună totul și împarte la numărul total de elevi.
 - **Apelată de:** `rank_towns()`, `show_results()`, `write_overview()`, `subject_score()`.
 
-#### `town_label(town, region)`: [linia 495](alex_school_results.py#L495)
+#### `town_label(town, region)`: [linia 495](../alex_school_results.py#L495)
 - **Într-o propoziție:** construiește textul afișat în lista de localități (Town).
 - **Exemplu:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **De ce și regiunea:** multe sate au același nume în regiuni diferite.
 - **Apelată de:** `town_choices()`.
 
-#### `split_town_label(label)`: [linia 503](alex_school_results.py#L503)
+#### `split_town_label(label)`: [linia 503](../alex_school_results.py#L503)
 - **Într-o propoziție:** opusul lui `town_label()`: desparte din nou localitatea și regiunea.
 - **Exemplu:** `"ГР.ВАРНА (ВАРНА)"` → `("ГР.ВАРНА", "ВАРНА")`
 - **Cum:** `rsplit(" (", 1)` taie textul o singură dată, la ultimul `" ("`; `rstrip(")")` scoate
@@ -505,7 +505,7 @@ Toate celelalte funcții lucrează doar cu date care sunt deja în memorie.
 Aceste funcții sunt folosite **doar pentru a umple sau a actualiza baza de date**: prima dată și
 atunci când apeși butonul verde **Check for new results**.
 
-#### `call_portal(method, payload)`: [linia 223](alex_school_results.py#L223)
+#### `call_portal(method, payload)`: [linia 223](../alex_school_results.py#L223)
 - **Într-o propoziție:** trimite o întrebare portalului de date deschise (data.egov.bg) și întoarce
   răspunsul lui.
 - **Primește:** numele întrebării (`method`), de exemplu `"listResources"`, și detaliile ei
@@ -523,7 +523,7 @@ atunci când apeși butonul verde **Check for new results**.
   există un singur loc de reparat.
 - **Apelată de:** `find_exam_datasets()`, `list_exam_files()`, `download_results()`.
 
-#### `find_ministry_on_portal()`: [linia 236](alex_school_results.py#L236)
+#### `find_ministry_on_portal()`: [linia 236](../alex_school_results.py#L236)
 - **Într-o propoziție:** citește pagina „date deschise” a ministerului de pe mon.bg și găsește
   ID-ul ministerului pe portal.
 - **Primește:** nimic. **Dă înapoi:** ID-ul, un text ca `"a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"`.
@@ -538,7 +538,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `update_database()`. Dacă mon.bg nu funcționează, `update_database()` folosește
   în schimb `KNOWN_MINISTRY_ID`.
 
-#### `find_exam_datasets(ministry_id)`: [linia 252](alex_school_results.py#L252)
+#### `find_exam_datasets(ministry_id)`: [linia 252](../alex_school_results.py#L252)
 - **Într-o propoziție:** găsește cele 4 seturi de date ale ministerului despre examene (НВО clasele
   a 4-a, a 7-a și a 10-a, și ДЗИ) printre cele aproximativ 350 de seturi de date ale lui.
 - **Dă înapoi:** un dicționar *examen → ID-ul setului de date*, de exemplu
@@ -555,7 +555,7 @@ atunci când apeși butonul verde **Check for new results**.
   trebuie”, `_`.
 - **Apelată de:** `update_database()`.
 
-#### `list_exam_files(exam_datasets)`: [linia 282](alex_school_results.py#L282)
+#### `list_exam_files(exam_datasets)`: [linia 282](../alex_school_results.py#L282)
 - **Într-o propoziție:** listează fișierele anuale ale fiecărui examen de pe portal și îi dă
   fiecăruia un nume ușor de citit, ca `"NVO 7th grade - 2025/2026"`.
 - **Dă înapoi:** un dicționar *„examen - an” → (tip, ID-ul fișierului)*, de exemplu
@@ -568,7 +568,7 @@ atunci când apeși butonul verde **Check for new results**.
   4. Sortează fișierele cu anul cel mai nou primul.
 - **Apelată de:** `update_database()`, care compară această listă cu lista din baza de date.
 
-#### `download_results(kind, resource_id)`: [linia 318](alex_school_results.py#L318)
+#### `download_results(kind, resource_id)`: [linia 318](../alex_school_results.py#L318)
 - **Într-o propoziție:** descarcă un fișier cu rezultate de pe portal și îl transformă într-un tabel
   curat, cu un rând pentru fiecare școală.
 - **Primește:** tipul (`"nvo"` sau `"dzi"`) și ID-ul fișierului. **Dă înapoi:** un tabel cu
@@ -602,7 +602,7 @@ atunci când apeși butonul verde **Check for new results**.
 
 ### Grupa 3: Baza de date
 
-#### `open_database()`: [linia 364](alex_school_results.py#L364)
+#### `open_database()`: [linia 364](../alex_school_results.py#L364)
 - **Într-o propoziție:** deschide fișierul bazei de date `school_results.db` și îl creează, împreună
   cu tabelele lui, dacă nu există încă.
 - **Dă înapoi:** o **conexiune** deschisă la baza de date: linia prin care Python vorbește cu ea.
@@ -616,7 +616,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `save_results()`, `stored_files()`, `read_results()`, `update_database()`,
   `database_status()`.
 
-#### `save_results(choice, kind, resource_id, table)`: [linia 374](alex_school_results.py#L374)
+#### `save_results(choice, kind, resource_id, table)`: [linia 374](../alex_school_results.py#L374)
 - **Într-o propoziție:** salvează în baza de date un fișier cu rezultate descărcat, înlocuind o copie
   mai veche a lui.
 - **Primește:** numele fișierului (`choice`, ca `"NVO 7th grade - 2025/2026"`), tipul lui, ID-ul lui
@@ -634,7 +634,7 @@ atunci când apeși butonul verde **Check for new results**.
   Nu lipi niciodată singur valori în textul SQL.
 - **Apelată de:** `update_database()`.
 
-#### `stored_files()`: [linia 392](alex_school_results.py#L392)
+#### `stored_files()`: [linia 392](../alex_school_results.py#L392)
 - **Într-o propoziție:** listează toate fișierele cu rezultate din baza de date.
 - **Dă înapoi:** același fel de dicționar ca `list_exam_files()`: *„examen - an” → (tip, ID-ul
   fișierului)*. Acest dicționar umple lista „Exam and school year” (examen și an școlar) de pe
@@ -645,7 +645,7 @@ atunci când apeși butonul verde **Check for new results**.
   sortare.
 - **Apelată de:** `main()`, `update_database()`, `check_for_new_results()`.
 
-#### `read_results(choice, kind)`: [linia 409](alex_school_results.py#L409)
+#### `read_results(choice, kind)`: [linia 409](../alex_school_results.py#L409)
 - **Într-o propoziție:** citește un examen și un an din baza de date, ca tabel cu numele de coloane
   de pe pagină.
 - **Exemplu:** `read_results("NVO 7th grade - 2025/2026", "nvo")` dă cele 1.702 școli în cam 20 de
@@ -657,7 +657,7 @@ atunci când apeși butonul verde **Check for new results**.
      în numere întregi (`Int64`).
 - **Apelată de:** `load_choice()`, `main()`.
 
-#### `update_database()`: [linia 426](alex_school_results.py#L426)
+#### `update_database()`: [linia 426](../alex_school_results.py#L426)
 - **Într-o propoziție:** cere portalului lista lui de fișiere cu rezultate și le descarcă doar pe
   cele pe care baza de date nu le are încă sau pe care ministerul le-a înlocuit.
 - **Dă înapoi:** lista fișierelor adăugate sau înlocuite. Este goală dacă nu era nimic nou.
@@ -672,7 +672,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `main()` (doar când baza de date este goală) și `check_for_new_results()`
   (butonul verde).
 
-#### `database_status()`: [linia 455](alex_school_results.py#L455)
+#### `database_status()`: [linia 455](../alex_school_results.py#L455)
 - **Într-o propoziție:** scrie rândul din partea de sus a paginii, de exemplu *„Data: 25 results
   files in the local database (school_results.db) · last checked on data.egov.bg: 2026-11-25
   13:22”* (25 de fișiere cu rezultate în baza de date locală · ultima verificare pe data.egov.bg).
@@ -681,7 +681,7 @@ atunci când apeși butonul verde **Check for new results**.
   niciodată, scrie „never” (niciodată).
 - **Apelată de:** `build_page()` și `check_for_new_results()`.
 
-#### `load_choice(exam_files, choice)`: [linia 469](alex_school_results.py#L469)
+#### `load_choice(exam_files, choice)`: [linia 469](../alex_school_results.py#L469)
 - **Într-o propoziție:** transformă ce ai ales în lista „Exam and school year” în tabelul cu
   rezultate, din baza de date, sau afișează un mesaj de eroare pe pagină.
 - **Primește:** dicționarul de fișiere și alegerea ta, de exemplu `"DZI (matura) - 2025/2026"`.
@@ -698,7 +698,7 @@ atunci când apeși butonul verde **Check for new results**.
 
 ### Grupa 4: Alegere și clasament
 
-#### `town_choices(exam_files, choice, region)`: [linia 511](alex_school_results.py#L511)
+#### `town_choices(exam_files, choice, region)`: [linia 511](../alex_school_results.py#L511)
 - **Într-o propoziție:** face lista de localități pentru lista derulantă „Town”.
 - **Dă înapoi:** o listă care începe cu `"All towns"` (toate localitățile), apoi localitățile în
   ordine alfabetică, de exemplu `"ГР.ВАРНА (ВАРНА)"`.
@@ -709,7 +709,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `build_page()` (prima listă) și `refresh_towns()` (când se schimbă examenul sau
   regiunea).
 
-#### `rank_towns(table, kind, min_students)`: [linia 524](alex_school_results.py#L524)
+#### `rank_towns(table, kind, min_students)`: [linia 524](../alex_school_results.py#L524)
 - **Într-o propoziție:** face un clasament al localităților, cu cea mai bună prima.
 - **Dă înapoi:** un tabel cu un rând pentru fiecare localitate: `#`, Town, Region, Schools, Students
   (localitate, regiune, școli, elevi), cele două medii și „Both subjects” (ambele materii).
@@ -724,7 +724,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **`min_students`:** 100 pentru toată Bulgaria, 30 în interiorul unei regiuni.
 - **Apelată de:** `show_results()` (locul localității tale) și `write_overview()` (primele 5).
 
-#### `rank_schools(table, kind)`: [linia 548](alex_school_results.py#L548)
+#### `rank_schools(table, kind)`: [linia 548](../alex_school_results.py#L548)
 - **Într-o propoziție:** la fel ca `rank_towns()`, dar pentru școli.
 - **Cum:**
   1. Păstrează doar școlile cu cel puțin 10 elevi la fiecare examen (`MIN_SCHOOL_STUDENTS`).
@@ -734,7 +734,7 @@ atunci când apeși butonul verde **Check for new results**.
   2. Calculează „Both subjects”, sortează școlile și le numerotează.
 - **Apelată de:** `write_overview()`.
 
-#### `show_results(exam_files, choice, region, town, search, rank_by)`: [linia 565](alex_school_results.py#L565)
+#### `show_results(exam_files, choice, region, town, search, rank_by)`: [linia 565](../alex_school_results.py#L565)
 - **Într-o propoziție:** face tot ce apare în fila „Schools”: textul rezumatului și tabelul.
 - **Primește:** cele 5 alegeri ale tale de pe pagină: examenul, regiunea, localitatea, textul căutat
   și „rank by” (criteriul de clasament). **Dă înapoi două valori:** rezumatul (text Markdown) și
@@ -756,7 +756,7 @@ atunci când apeși butonul verde **Check for new results**.
 
 ### Grupa 5: Prezentarea AI
 
-#### `ollama_problem()`: [linia 637](alex_school_results.py#L637)
+#### `ollama_problem()`: [linia 637](../alex_school_results.py#L637)
 - **Într-o propoziție:** verifică dacă AI-ul este gata: Ollama rulează și gemma4 este descărcat.
 - **Dă înapoi:** `None` dacă totul e în regulă („nicio problemă”), altfel un mesaj care spune ce nu
   merge.
@@ -771,7 +771,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `main()` (un avertisment la pornire) și `write_overview()` (înainte de a întreba
   AI-ul).
 
-#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [linia 653](alex_school_results.py#L653)
+#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [linia 653](../alex_school_results.py#L653)
 - **Într-o propoziție:** scrie „scrisoarea” către AI: regulile noastre plus faptele.
 - **Dă înapoi:** o listă cu două mesaje:
   - `{"role": "system", ...}`: regulile, din `overview_system_prompt` de la începutul fișierului.
@@ -780,7 +780,7 @@ atunci când apeși butonul verde **Check for new results**.
   `ensure_ascii=False` păstrează literele chirilice ușor de citit.
 - **Apelată de:** `write_overview()`.
 
-#### `template_overview(area, towns, schools)`: [linia 677](alex_school_results.py#L677)
+#### `template_overview(area, towns, schools)`: [linia 677](../alex_school_results.py#L677)
 - **Într-o propoziție:** scrie prezentarea **fără AI**, din aceleași numere pe care le primește
   AI-ul.
 - **Când:** dacă Ollama nu rulează, dacă modelul nu e descărcat sau dacă AI-ul eșuează la jumătate.
@@ -796,7 +796,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Bine de știut:** este mai simplu decât textul AI-ului, dar **instant și mereu exact**.
 - **Apelată de:** `write_overview()`.
 
-#### `write_overview(exam_files, choice, region)`: [linia 708](alex_school_results.py#L708)
+#### `write_overview(exam_files, choice, region)`: [linia 708](../alex_school_results.py#L708)
 - **Într-o propoziție:** calculează primele 5 localități și școli, le afișează, apoi o lasă pe
   gemma4 să scrie prezentarea cuvânt cu cuvânt.
 - **Ce are special:** este un **generator**. Folosește `yield` în loc de `return`, iar fiecare
@@ -825,7 +825,7 @@ atunci când apeși butonul verde **Check for new results**.
 
 ### Grupa 6: Harta și cele trei vederi ale ei
 
-#### `schools_in_bulgaria(table)`: [linia 772](alex_school_results.py#L772)
+#### `schools_in_bulgaria(table)`: [linia 772](../alex_school_results.py#L772)
 - **Într-o propoziție:** lasă deoparte școlile din străinătate, care nu au o regiune pe hartă.
 - **Cum:** în Bulgaria fiecare localitate începe cu „ГР.” (oraș) sau „С.” (sat).
   `str.startswith(("ГР.", "С."))` dă `True` pentru acestea, iar regiunea nu trebuie să fie
@@ -835,7 +835,7 @@ atunci când apeși butonul verde **Check for new results**.
   media Sofiei.
 - **Apelată de:** `show_map()` și `region_gaps()`.
 
-#### `subject_score(schools, kind, subject)`: [linia 781](alex_school_results.py#L781)
+#### `subject_score(schools, kind, subject)`: [linia 781](../alex_school_results.py#L781)
 - **Într-o propoziție:** media unui grup de școli la materia aleasă, ponderată cu numărul de elevi.
 - **Primește:** un grup de școli (o regiune, toate orașele, toate satele sau toată țara), tipul de
   examen și materia: „Both subjects”, „Bulgarian (BEL)” sau „Maths / 2nd exam”. **Dă înapoi:** un
@@ -845,7 +845,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Exemplu:** НВО clasa a 7-a 2025/2026, ambele materii: toată țara dă 46,87, СОФИЯ-ГРАД dă 60,22.
 - **Apelată de:** `show_map()` și `region_gaps()`.
 
-#### `school_spread(schools, kind, subject)`: [linia 798](alex_school_results.py#L798)
+#### `school_spread(schools, kind, subject)`: [linia 798](../alex_school_results.py#L798)
 - **Într-o propoziție:** cât de împrăștiate sunt rezultatele școlilor la materia aleasă.
 - **Dă înapoi:** un singur număr, **abaterea standard**: în linii mari, cât de departe de medie este
   o școală obișnuită. Un număr mic înseamnă că majoritatea școlilor au cam aceleași rezultate; unul
@@ -859,7 +859,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Exemplu:** НВО clasa a 7-a, ambele materii: 15,01 puncte în 2018/2019, 17,55 în 2025/2026.
 - **Apelată de:** `region_gaps()`.
 
-#### `load_region_map()`: [linia 816](alex_school_results.py#L816)
+#### `load_region_map()`: [linia 816](../alex_school_results.py#L816)
 - **Într-o propoziție:** citește granițele celor 28 de regiuni din fișierul
   `bulgaria_regions.geojson`.
 - **Dă înapoi:** conținutul fișierului, ca dicționar. Pentru fiecare regiune are numele așa cum e
@@ -870,7 +870,7 @@ atunci când apeși butonul verde **Check for new results**.
   doar Bulgaria (66 KB).
 - **Apelată de:** `show_map()` și `show_change()`.
 
-#### `colour_key(values, zero_label)`: [linia 824](alex_school_results.py#L824)
+#### `colour_key(values, zero_label)`: [linia 824](../alex_school_results.py#L824)
 - **Într-o propoziție:** stabilește scara de culori pentru un set de numere peste și sub 0: cele
   două capete ale ei și etichetele legendei.
 - **Primește:** numerele (o coloană de tabel) și textul pentru mijlocul legendei, ca
@@ -888,7 +888,7 @@ atunci când apeși butonul verde **Check for new results**.
   „0 = average”, „+7”, „+13”.
 - **Apelată de:** `region_map()`, `region_bars()` și `trend_heatmap()`.
 
-#### `signed(value, decimals=2)`: [linia 840](alex_school_results.py#L840)
+#### `signed(value, decimals=2)`: [linia 840](../alex_school_results.py#L840)
 - **Într-o propoziție:** scrie un număr cu semnul lui, ca „+2.14” sau „−4.99”, pentru numerele
   afișate pe grafice.
 - **`decimals=2`:** un parametru cu **valoare implicită**. Dacă nu-l dai, este 2.
@@ -899,13 +899,13 @@ atunci când apeși butonul verde **Check for new results**.
   „0.0”.
 - **Apelată de:** `region_bars()` și `trend_heatmap()`.
 
-#### `year_labels(years)`: [linia 849](alex_school_results.py#L849)
+#### `year_labels(years)`: [linia 849](../alex_school_results.py#L849)
 - **Într-o propoziție:** scrie anii școlari pe două rânduri, ca „2018/” deasupra lui „2019”, ca să
   încapă sub coloanele înguste ale graficelor de tendințe fără să fie scriși înclinat.
 - **Cum:** `year.replace("/", "/<br>")`. În etichetele din Plotly, `<br>` înseamnă „rând nou”.
 - **Apelată de:** `trend_heatmap()` și `gap_trend_chart()`.
 
-#### `region_map(regions, borders, column, key_title, zero_label)`: [linia 857](alex_school_results.py#L857)
+#### `region_map(regions, borders, column, key_title, zero_label)`: [linia 857](../alex_school_results.py#L857)
 - **Într-o propoziție:** desenează harta, cu fiecare regiune colorată după numerele dintr-o coloană a
   tabelului: diferența ei față de media națională sau cât s-a schimbat acea diferență.
 - **Primește:** tabelul regiunilor, granițele, coloana după care colorează (`"Vs Bulgaria"` sau
@@ -924,7 +924,7 @@ atunci când apeși butonul verde **Check for new results**.
   două copii ale ei.
 - **Apelată de:** `show_map()` și `show_change()`.
 
-#### `region_bars(regions, column, axis_title)`: [linia 885](alex_school_results.py#L885)
+#### `region_bars(regions, column, axis_title)`: [linia 885](../alex_school_results.py#L885)
 - **Într-o propoziție:** aceleași 28 de regiuni ca grafic cu bare, cea mai mare sus, cu numărul
   exact al fiecărei regiuni scris lângă bara ei.
 - **De ce:** o hartă e bună pentru *unde*, iar barele sunt mai bune pentru *cât*. Numerele scrise
@@ -938,7 +938,7 @@ atunci când apeși butonul verde **Check for new results**.
      rând jos.
 - **Apelată de:** `show_map()` și `show_change()`.
 
-#### `show_map(exam_files, choice, subject)`: [linia 920](alex_school_results.py#L920)
+#### `show_map(exam_files, choice, subject)`: [linia 920](../alex_school_results.py#L920)
 - **Într-o propoziție:** face tot ce apare în fila „Map and trends of the regions”: rezumatul diferențelor,
   harta și graficul cu bare.
 - **Primește:** examenul și anul alese și materia din „Colour by” (colorează după). **Dă înapoi
@@ -960,7 +960,7 @@ atunci când apeși butonul verde **Check for new results**.
   „Cities (ГР.): 49.68 · villages (С.): 30.95 · gap: 18.73 points” (orașe · sate · decalaj).
 - **Apelată de:** `map_view()` de pe pagină, pentru vederea „Difference from Bulgaria”.
 
-#### `exam_years(exam_files, choice)`: [linia 969](alex_school_results.py#L969)
+#### `exam_years(exam_files, choice)`: [linia 969](../alex_school_results.py#L969)
 - **Într-o propoziție:** găsește toți anii examenului ales, cu cel mai vechi primul.
 - **Cum:** o alegere arată ca „NVO 7th grade - 2025/2026”. `rsplit(" - ", 1)` o taie la **ultimul**
   „ - ” în examen („NVO 7th grade”) și an. Funcția păstrează fișierele aceluiași examen și le
@@ -969,7 +969,7 @@ atunci când apeși butonul verde **Check for new results**.
   „NVO 7th grade - 2018/2019” la „NVO 7th grade - 2025/2026”.
 - **Apelată de:** `show_change()` și `show_trends()`.
 
-#### `region_gaps(exam_files, choices, subject)`: [linia 978](alex_school_results.py#L978)
+#### `region_gaps(exam_files, choices, subject)`: [linia 978](../alex_school_results.py#L978)
 - **Într-o propoziție:** pentru fiecare dintre anii de examen dați, cât de departe este fiecare
   regiune de media națională din acel an.
 - **Primește:** fișierele, o listă de alegeri (2 ani pentru schimbare, toți anii pentru tendințe) și
@@ -988,7 +988,7 @@ atunci când apeși butonul verde **Check for new results**.
   acest efect, așa că anii pot fi comparați.
 - **Apelată de:** `show_change()` și `show_trends()`.
 
-#### `show_change(exam_files, choice, subject)`: [linia 999](alex_school_results.py#L999)
+#### `show_change(exam_files, choice, subject)`: [linia 999](../alex_school_results.py#L999)
 - **Într-o propoziție:** face vederea „Change since the previous year”: cât s-a mișcat fiecare
   regiune față de media națională, comparativ cu anul dinainte.
 - **Dă înapoi trei valori,** ca `show_map()`: rezumatul, harta și graficul cu bare.
@@ -1007,7 +1007,7 @@ atunci când apeși butonul verde **Check for new results**.
   ДОБРИЧ +2,14, cel mai mult a rămas în urmă ЯМБОЛ −4,99, mișcarea tipică a fost de 0,98 puncte.
 - **Apelată de:** `map_view()` de pe pagină.
 
-#### `show_trends(exam_files, choice, subject)`: [linia 1044](alex_school_results.py#L1044)
+#### `show_trends(exam_files, choice, subject)`: [linia 1044](../alex_school_results.py#L1044)
 - **Într-o propoziție:** face vederea „Trends over the years”: distanța fiecărei regiuni față de
   media națională, în fiecare an al examenului ales.
 - **Dă înapoi trei valori:** rezumatul, grila regiunilor și anilor (`trend_heatmap()`) și graficul
@@ -1029,7 +1029,7 @@ atunci când apeși butonul verde **Check for new results**.
   regiuni au fost sub media națională în fiecare an.
 - **Apelată de:** `map_view()` de pe pagină.
 
-#### `drift_words(change)`: [linia 1089](alex_school_results.py#L1089)
+#### `drift_words(change)`: [linia 1089](../alex_school_results.py#L1089)
 - **Într-o propoziție:** descrie în cuvinte schimbarea decalajului (raportat la împrăștiere):
   „the regions drifted apart” (regiunile s-au îndepărtat), „the regions came closer” (regiunile
   s-au apropiat) sau „about the same” (cam la fel).
@@ -1039,7 +1039,7 @@ atunci când apeși butonul verde **Check for new results**.
   scăzut de la 1,28 la 1,21, așa că `drift_words(-0.07)` dă „the regions came closer”.
 - **Apelată de:** `show_trends()`.
 
-#### `trend_heatmap(gaps, unit)`: [linia 1101](alex_school_results.py#L1101)
+#### `trend_heatmap(gaps, unit)`: [linia 1101](../alex_school_results.py#L1101)
 - **Într-o propoziție:** desenează grila cu un rând pentru fiecare regiune și o coloană pentru
   fiecare an școlar, fiecare celulă fiind colorată după distanța regiunii față de media națională și
   având numărul scris în ea.
@@ -1051,7 +1051,7 @@ atunci când apeși butonul verde **Check for new results**.
   3. `xgap=2, ygap=2` lasă un mic spațiu între celule. Anii sunt sus, scriși de `year_labels()`.
 - **Apelată de:** `show_trends()`.
 
-#### `gap_trend_chart(spread, relative, unit)`: [linia 1136](alex_school_results.py#L1136)
+#### `gap_trend_chart(spread, relative, unit)`: [linia 1136](../alex_school_results.py#L1136)
 - **Într-o propoziție:** un grafic cu linie al decalajului dintre cea mai bună și cea mai slabă
   regiune, an de an. O linie care urcă înseamnă că regiunile se îndepărtează unele de altele.
 - **Primește:** decalajele în puncte sau note (`spread`), aceleași decalaje împărțite la
@@ -1070,7 +1070,7 @@ atunci când apeși butonul verde **Check for new results**.
 
 ### Grupa 7: Pagina web și pornirea
 
-#### `build_page(exam_files, regions)`: [linia 1170](alex_school_results.py#L1170)
+#### `build_page(exam_files, regions)`: [linia 1170](../alex_school_results.py#L1170)
 - **Într-o propoziție:** construiește pagina web (liste, butoane, file, tabele) și hotărăște ce
   funcție rulează când dai clic pe ceva sau schimbi ceva.
 - **Primește:** dicționarul de fișiere și lista regiunilor. **Dă înapoi:** pagina, pe care `main()`
@@ -1138,7 +1138,7 @@ atunci când apeși butonul verde **Check for new results**.
   - Lista de localități folosește `.input`, ca rezultatele să nu fie afișate de două ori când
     `refresh_towns()` resetează localitatea.
 
-#### `main()`: [linia 1351](alex_school_results.py#L1351)
+#### `main()`: [linia 1351](../alex_school_results.py#L1351)
 - **Într-o propoziție:** punctul de pornire: pregătește datele din baza de date, construiește pagina
   și o deschide în browserul tău.
 - **Cum:**
