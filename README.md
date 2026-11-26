@@ -9,8 +9,8 @@ changes from year to year**. The data is published by the Ministry of Education 
   them.
 
 A learning project in Python, written to be easy to read: every function is explained for
-beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgaria.md) and
-[Russian](explanation_russian.md).
+beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgarian.md),
+[Russian](explanation_russian.md) and [Romanian](explanation_romanian.md).
 
 ![The map of the regions: 28 regions coloured from dark red (far below the national average) to light green (far above), next to a bar chart of all regions](screenshot_map.png)
 
@@ -115,7 +115,7 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 | [requirements.txt](requirements.txt) | The Python packages the app needs |
 | [schools/](schools/) | A snapshot from 17 November 2026: one CSV file per school (2,379 schools), plus the index [_all_schools.csv](schools/_all_schools.csv). The database is the copy that gets updated |
 | [info.md](info.md) | Research notes: where the data is, how the portal's API works, the data's quirks, and the findings |
-| [explanation_english.md](explanation_english.md), [explanation_bulgaria.md](explanation_bulgaria.md), [explanation_russian.md](explanation_russian.md) | Every function explained for Python beginners, with a diagram of how they connect |
+| [explanation_english.md](explanation_english.md), [explanation_bulgarian.md](explanation_bulgarian.md), [explanation_russian.md](explanation_russian.md), [explanation_romanian.md](explanation_romanian.md) | Every function explained for Python beginners, with a diagram of how they connect |
 | [overview_bulgarian.md](overview_bulgarian.md) | An overview of the project in Bulgarian |
 
 ## Good to know
