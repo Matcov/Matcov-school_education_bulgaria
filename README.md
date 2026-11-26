@@ -7,6 +7,8 @@ changes from year to year**. The data is published by the Ministry of Education 
   seconds and works without internet.
 - **A green "Check for new results" button** downloads new results when the ministry publishes
   them.
+- **The page comes in 4 languages:** Bulgarian, English, Russian and Romanian, with a blue button
+  for each next to the title.
 
 A learning project in Python, written to be easy to read:
 - **An overview of the project** in [English](Overviews/overview_english.md),
@@ -62,6 +64,22 @@ A learning project in Python, written to be easy to read:
   - In all three views the colours also get lighter as results get better, so they still read for
     colour-blind readers and in black and white.
 
+**Four languages:** the blue **EN BG RU RO** buttons next to the title switch the whole page,
+including the summaries, the charts and the AI overview:
+
+| Language | Address |
+|---|---|
+| Bulgarian | http://127.0.0.1:7860 |
+| English | http://127.0.0.1:7860/en |
+| Russian | http://127.0.0.1:7860/ru |
+| Romanian | http://127.0.0.1:7860/ro |
+
+- **The names in the data stay in Bulgarian** (schools, towns, regions), as the ministry writes
+  them.
+- **Decimals keep the point in every language** (55.28), like the charts. Whole numbers have a
+  space between thousands outside English (53 739), so they can't be read as decimals.
+- **Switching language starts the page again,** with the default choices.
+
 **At the top of the page,** a line shows how many results files are in the database and when it
 was last checked. Next to it, the green **"Check for new results"** button asks the government's
 open data portal for new files, which takes about 20 seconds. It downloads only the files the
@@ -86,7 +104,7 @@ come once a year: НВО around June–July, and the matura (May–June session)
    python alex_school_results.py
    ```
    It starts in a few seconds, from the database, and opens in your browser at
-   http://127.0.0.1:7860. Press **Ctrl+C** in the terminal to stop it.
+   http://127.0.0.1:7860, in Bulgarian. Press **Ctrl+C** in the terminal to stop it.
 5. **Optional, for the AI overview:** install [Ollama](https://ollama.com), then download the
    model with `ollama pull gemma4`. Without it, the program writes a plainer overview itself.
 
@@ -113,6 +131,7 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 | File | What it is |
 |---|---|
 | [alex_school_results.py](alex_school_results.py) | The app |
+| [translations.py](translations.py) | Every text on the page, in English, Bulgarian, Russian and Romanian. Change a text here, in all 4 languages |
 | [school_results.db](school_results.db) | The database with every results file: the app reads only this. You can open it with any SQLite tool, such as the free [DB Browser for SQLite](https://sqlitebrowser.org) |
 | [bulgaria_regions.geojson](bulgaria_regions.geojson) | The borders of the 28 regions, for the map (Natural Earth, Bulgaria only) |
 | [screenshot_map.png](screenshot_map.png), [screenshot_trends.png](screenshot_trends.png) | The pictures of the map tab at the top of this page |
@@ -121,6 +140,7 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 | [info.md](info.md) | Research notes: where the data is, how the portal's API works, the data's quirks, and the findings |
 | [Overviews/](Overviews/) | An overview of the project: the data, how it's cleaned, the database and the app, in English, Bulgarian, Russian and Romanian |
 | [Explanations/](Explanations/) | Every function explained for Python beginners, with a diagram of how they connect, in English, Bulgarian, Russian and Romanian |
+| [CLAUDE.md](CLAUDE.md) | Notes for Claude Code, the AI assistant used to build this project: how to run and test it, and the project's rules |
 
 ## Good to know
 
@@ -137,7 +157,10 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
   handles.
 - **The AI can still get the wording wrong,** even though all numbers come from the code. The
   tables next to its text are always correct, and so is the overview the program writes when the
-  AI isn't available.
+  AI isn't available. gemma4 writes English best; its Bulgarian, Russian and Romanian are less
+  polished.
+- **The translations were made with AI help.** A native speaker should read them before you rely
+  on them.
 - **The database is a copy.** Results the ministry publishes later appear only after you click
   **Check for new results**.
 - **If the page stops reacting, close other tabs of the app.** A browser allows only 6 connections

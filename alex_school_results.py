@@ -24,11 +24,15 @@ country, and ask a local Ollama model (gemma4) for an overview of the top 5 town
 top 5 schools. The rankings are calculated by the code; the model only writes about them.
 When the AI isn't available, the program writes the overview itself, from the same numbers.
 
-The "Map of the regions" tab colours Bulgaria's 28 regions by how far their results are
-from the national average, from dark red (far below) to light green (far above).
+The "Map and trends of the regions" tab colours Bulgaria's 28 regions by how far their results
+are from the national average, from dark red (far below) to light green (far above).
+
+The page comes in 4 languages, with a button for each at the top: Bulgarian at the plain address,
+and English, Russian and Romanian at /en, /ru and /ro. All its texts are in translations.py.
 
 Before running:
-- bulgaria_regions.geojson (the region borders for the map) must be next to this script.
+- bulgaria_regions.geojson (the region borders for the map) and translations.py (the texts)
+  must be next to this script.
   school_results.db is created and filled automatically the first time, if it's missing.
 - For the AI overview: the Ollama app must be running, with the model downloaded:
   ollama pull gemma4. Without it, the program writes a plainer overview itself.
@@ -52,6 +56,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
+
+# The page's texts in 4 languages, from translations.py next to this script
+from translations import FIRST_LANGUAGE, LANGUAGE_NAMES, LANGUAGES, missing_translations, translate, whole_number
 
 
 # mon.bg's page that links to the ministry's data on the national open data portal
@@ -88,10 +95,13 @@ RESULT_COLUMNS = {
     "dzi": ["BEL students", "BEL grade", "2nd exam students", "2nd exam grade"]
 }
 
+# The values the code uses for "all regions" and "all towns" in the lists. The page shows them
+# translated; these stay the same in every language
 ALL_REGIONS = "All regions"
 ALL_TOWNS = "All towns"
 # Bulgarian schools in other countries are listed under this "region"
 ABROAD = "ЧУЖБИНА"
+# The values of "Rank schools by" (the page shows them translated, from "subject: ..." in translations.py)
 RANK_BY = ["Bulgarian (BEL)", "Maths / 2nd exam"]
 
 # How many towns and schools the overview shows
@@ -151,15 +161,11 @@ DATABASE_COLUMNS = ["region", "municipality", "town", "school", "school_code",
 # made from Natural Earth's public domain map data (naturalearthdata.com)
 REGION_MAP_FILE = Path(__file__).parent / "bulgaria_regions.geojson"
 
-# What the map can be coloured by
+# What the map can be coloured by (the page shows them translated, like RANK_BY)
 MAP_SUBJECTS = ["Both subjects", "Bulgarian (BEL)", "Maths / 2nd exam"]
 
-# The map tab's three views, and the label of each one's button
-MAP_VIEWS = {
-    "difference": "Difference from Bulgaria",
-    "change": "Change since the previous year",
-    "trends": "Trends over the years"
-}
+# The map tab's three views. Each one's button label is "view_<name>" in translations.py
+MAP_VIEWS = ["difference", "change", "trends"]
 
 # The map's colours, from far below the national average to far above it:
 # dark red -> red -> yellow (about average) -> light green.
@@ -167,12 +173,8 @@ MAP_VIEWS = {
 # white or for colour-blind readers (checked with simulated colour blindness)
 MAP_COLOURS = [[0.0, "#7a1416"], [0.25, "#c8432c"], [0.5, "#f0b84a"], [0.75, "#d8e88c"], [1.0, "#c4f1bd"]]
 
-# Shown under the map, so the colours aren't read as a verdict on the schools
-MAP_NOTE = (
-    "Colours show differences in exam results, not the quality of the schools: results also "
-    "depend on family income, town or village, and which students sit the exam."
-)
-
+# The instructions for the AI model. The words in {curly brackets} are filled in for the page's
+# language: the model writes in that language, with the headings translated
 overview_system_prompt = """
 You are an education data analyst. You write short, clear overviews of Bulgarian school
 exam results for parents.
@@ -187,12 +189,13 @@ Rules:
 - Keep town and school names exactly as written, in Cyrillic.
 - "Both subjects" is the average of the two subjects.
 - Do not ask questions. Do not write code. Do not wrap the answer in a code block.
+- Write the whole answer in {language}.
 
 Format your answer in markdown:
-## Top towns
+## {towns_heading}
 One sentence introducing the list, then a numbered list with one short line per town:
 its name, its "Both subjects" score, and its "Vs area average" text exactly as given.
-## Top schools
+## {schools_heading}
 The same for the schools, with each school's town after its name.
 End with one sentence about what the two lists have in common, only if the data shows
 it (for example: most of the top schools are in the same town).
@@ -452,7 +455,7 @@ def update_database():
     return new_files
 
 
-def database_status():
+def database_status(language):
     """
     A one-line description of the database, for the top of the page
     """
@@ -462,22 +465,62 @@ def database_status():
         last_check = database.execute("SELECT MAX(checked_at) FROM checks").fetchone()[0]
     finally:
         database.close()
-    return (f"**Data:** {files} results files in the local database ({DATABASE_FILE.name}) · "
-            f"last checked on data.egov.bg: {last_check or 'never'}")
+    return translate("data_status", language, files=files, database=DATABASE_FILE.name,
+                     last_check=last_check or translate("never", language))
 
 
-def load_choice(exam_files, choice):
+def exam_name(exam, language):
+    """
+    An exam's name in the page's language: "NVO 7th grade" -> "НВО 7. клас" in Bulgarian
+    """
+    return translate(f"exam: {exam}", language)
+
+
+def choice_label(choice, language):
+    """
+    How an exam and year appears in the list, in the page's language:
+    "NVO 7th grade - 2025/2026" -> "НВО 7. клас - 2025/2026" in Bulgarian.
+    The code keeps using the English choice; only the label is translated
+    """
+    exam, year = choice.rsplit(" - ", 1)
+    return f"{exam_name(exam, language)} - {year}"
+
+
+def choice_list(exam_files, language):
+    """
+    The "Exam and school year" list: (label, value) pairs. Gradio shows the label and gives
+    the code the value, so the code always gets the English choice
+    """
+    return [(choice_label(choice, language), choice) for choice in exam_files]
+
+
+def subject_name(subject, language):
+    """
+    "Both subjects", "Bulgarian (BEL)" or "Maths / 2nd exam" in the page's language
+    """
+    return translate(f"subject: {subject}", language)
+
+
+def shown_table(table, language):
+    """
+    A copy of a table with its column names in the page's language, ready to show.
+    The code works with the English names; only what you see is translated
+    """
+    return table.rename(columns=lambda column: column if column == "#" else translate(f"column: {column}", language))
+
+
+def load_choice(exam_files, choice, language):
     """
     Return the kind of exam ("nvo" or "dzi") and the results table for a dropdown choice,
     from the database, with a message on the page if it can't be read
     """
     if choice not in exam_files:
-        raise gr.Error("Please choose an exam and a school year.")
+        raise gr.Error(translate("choose_exam", language))
     kind, _ = exam_files[choice]
     try:
         return kind, read_results(choice, kind)
     except (sqlite3.Error, pd.errors.DatabaseError) as error:
-        raise gr.Error(f"Couldn't read the results from the database: {error}")
+        raise gr.Error(translate("database_error", language, error=error))
 
 
 def weighted_average(table, count_column, average_column):
@@ -508,17 +551,18 @@ def split_town_label(label):
     return town, region.rstrip(")")
 
 
-def town_choices(exam_files, choice, region):
+def town_choices(exam_files, choice, region, language):
     """
     The towns for the dropdown: those with schools in the chosen exam and region.
-    Cities ("ГР.") come before villages ("С.") because of the alphabetical order
+    Cities ("ГР.") come before villages ("С.") because of the alphabetical order.
+    The first one, "All towns", is a (label, value) pair: translated label, English value
     """
-    _, table = load_choice(exam_files, choice)
+    _, table = load_choice(exam_files, choice, language)
     # An empty region box means the same as "All regions"
     if region and region != ALL_REGIONS:
         table = table[table["Region"] == region]
     towns = table[["Town", "Region"]].drop_duplicates()
-    return [ALL_TOWNS] + sorted(town_label(row.Town, row.Region) for row in towns.itertuples())
+    return [(translate("all_towns", language), ALL_TOWNS)] + sorted(town_label(row.Town, row.Region) for row in towns.itertuples())
 
 
 def rank_towns(table, kind, min_students):
@@ -562,12 +606,12 @@ def rank_schools(table, kind):
     return schools
 
 
-def show_results(exam_files, choice, region, town, search, rank_by):
+def show_results(exam_files, choice, region, town, search, rank_by, language):
     """
     Filter and rank the schools, and write a summary above the table.
     When a town is chosen, the summary compares it with its region and the country
     """
-    kind, everything = load_choice(exam_files, choice)
+    kind, everything = load_choice(exam_files, choice, language)
     bel_students, bel_average, second_students, second_average = RESULT_COLUMNS[kind]
 
     # Pick the schools to show, and the wider areas to compare them with
@@ -577,14 +621,15 @@ def show_results(exam_files, choice, region, town, search, rank_by):
         town_name, town_region = split_town_label(town)
         region_table = everything[everything["Region"] == town_region]
         table = region_table[region_table["Town"] == town_name]
-        compare_with = [(f"{town_region} region", region_table), ("Bulgaria", everything)]
+        compare_with = [(translate("region_name", language, region=town_region), region_table),
+                        (translate("bulgaria", language), everything)]
         area = town
     elif region and region != ALL_REGIONS:
         table = everything[everything["Region"] == region]
-        compare_with = [("Bulgaria", everything)]
+        compare_with = [(translate("bulgaria", language), everything)]
         area = region
     else:
-        area = ALL_REGIONS
+        area = translate("all_regions", language)
 
     if search and search.strip():
         text = search.strip()
@@ -600,16 +645,17 @@ def show_results(exam_files, choice, region, town, search, rank_by):
     table = table.sort_values(sort_column, ascending=False, na_position="last")
     table.insert(0, "#", range(1, len(table) + 1))
 
-    scale = "points (maximum 100)" if kind == "nvo" else "grade (2 to 6)"
-    schools = "school" if len(table) == 1 else "schools"
-    summary = [f"**{choice}** · {area} · **{len(table)} {schools}**"]
+    scale = translate("scale_nvo" if kind == "nvo" else "scale_dzi", language)
+    summary = [translate("summary_head", language, choice=choice_label(choice, language), area=area,
+                         count=whole_number(len(table), language))]
     for count_column, average_column in [(bel_students, bel_average), (second_students, second_average)]:
         average, students = weighted_average(table, count_column, average_column)
         if average is None:
             continue
-        # "BEL points" -> "BEL", "2nd exam grade" -> "2nd exam"
-        subject = average_column.rsplit(" ", 1)[0]
-        line = f"- {subject}: average **{average:.2f}** {scale}, {students:,} students"
+        # "BEL points" -> "BEL", "2nd exam grade" -> "2nd exam", then translated
+        subject = translate("short: " + average_column.rsplit(" ", 1)[0], language)
+        line = translate("subject_line", language, subject=subject, average=f"{average:.2f}", scale=scale,
+                         students=whole_number(students, language))
         for name, other in compare_with:
             other_average, _ = weighted_average(other, count_column, average_column)
             if other_average is not None:
@@ -619,22 +665,23 @@ def show_results(exam_files, choice, region, town, search, rank_by):
     if town and town != ALL_TOWNS:
         ranks = []
         for ranked, where, minimum in [
-            (rank_towns(everything, kind, MIN_TOWN_STUDENTS), "towns in Bulgaria", MIN_TOWN_STUDENTS),
-            (rank_towns(region_table, kind, MIN_TOWN_STUDENTS_IN_REGION), f"in {town_region} region", MIN_TOWN_STUDENTS_IN_REGION)
+            (rank_towns(everything, kind, MIN_TOWN_STUDENTS), translate("rank_in_bulgaria", language), MIN_TOWN_STUDENTS),
+            (rank_towns(region_table, kind, MIN_TOWN_STUDENTS_IN_REGION),
+             translate("rank_in_region", language, region=town_region), MIN_TOWN_STUDENTS_IN_REGION)
         ]:
             here = ranked[(ranked["Town"] == town_name) & (ranked["Region"] == town_region)]
             if not here.empty:
-                ranks.append(f"**#{here['#'].iloc[0]} of {len(ranked)}** {where} (towns with {minimum}+ students)")
+                ranks.append(translate("rank_item", language, rank=here["#"].iloc[0], total=len(ranked), where=where, minimum=minimum))
         if ranks:
-            summary.append("- Town rank (average of both subjects): " + " · ".join(ranks))
+            summary.append(translate("town_rank", language, ranks=" · ".join(ranks)))
         else:
-            summary.append(f"- Town rank: not ranked, fewer than {MIN_TOWN_STUDENTS_IN_REGION} students took each exam")
+            summary.append(translate("not_ranked", language, minimum=MIN_TOWN_STUDENTS_IN_REGION))
     if table.empty:
-        summary.append("\nNo schools match your search.")
-    return "\n".join(summary), table
+        summary.append("\n" + translate("no_match", language))
+    return "\n".join(summary), shown_table(table, language)
 
 
-def ollama_problem():
+def ollama_problem(language):
     """
     Return None if Ollama is running and the model is downloaded,
     otherwise a message that says what's wrong
@@ -642,18 +689,24 @@ def ollama_problem():
     try:
         models = requests.get("http://localhost:11434/api/tags", timeout=5).json()["models"]
     except requests.exceptions.RequestException:
-        return "Ollama isn't running: start the Ollama app to get the AI overview."
+        return translate("ollama_not_running", language)
     # Ollama treats a model name without a tag as ":latest"
     wanted = MODEL if ":" in MODEL else MODEL + ":latest"
     if wanted not in [model["name"] for model in models]:
-        return f"{MODEL} isn't downloaded: run `ollama pull {MODEL}` in a terminal."
+        return translate("model_missing", language, model=MODEL)
     return None
 
 
-def overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students):
+def overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students, language):
     """
-    Build the list of messages for the model: our instructions, then the facts in JSON
+    Build the list of messages for the model: our instructions, then the facts in JSON.
+    The facts are in English, which the model reads best; it writes its answer in the page's language
     """
+    system_prompt = overview_system_prompt.format(
+        language=LANGUAGE_NAMES[language],
+        towns_heading=translate("heading_towns", language),
+        schools_heading=translate("heading_schools", language)
+    )
     scale = "average points out of 100" if kind == "nvo" else "average grade from 2 (lowest) to 6 (highest)"
     subjects = "Bulgarian (BEL) and Maths (MAT)" if kind == "nvo" else "Bulgarian (BEL) and the 2nd compulsory matura exam"
     # ensure_ascii=False keeps the Cyrillic names readable instead of turning them into codes
@@ -669,61 +722,61 @@ def overview_messages(choice, kind, area, area_averages, towns, schools, min_tow
         f"Top schools (only schools where at least {MIN_SCHOOL_STUDENTS} students took each exam):\n{schools_json}"
     )
     return [
-        {"role": "system", "content": overview_system_prompt},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": request}
     ]
 
 
-def template_overview(area, towns, schools):
+def template_overview(area, towns, schools, language):
     """
     The overview written by the program itself, from the same numbers the AI gets.
     Used when the AI isn't available: plainer than the AI's text, but instant and always exact
     """
-    lines = ["## Top towns"]
+    lines = ["## " + translate("heading_towns", language)]
     if towns.empty:
-        lines.append(f"No town in {area} has enough students to be ranked.")
+        lines.append(translate("no_town_ranked", language, area=area))
     else:
-        lines.append(f"The best towns in {area}, ranked by the average of both subjects:")
+        lines.append(translate("best_towns_intro", language, area=area))
         for town in towns.to_dict(orient="records"):
-            lines.append(f"{town['#']}. **{town['Town']}**: {town['Both subjects']:.2f}, "
-                         f"{town['Vs area average']} the area's average")
+            lines.append(translate("town_item", language, rank=town["#"], town=town["Town"],
+                                   score=f"{town['Both subjects']:.2f}", difference=town["Vs area average"]))
 
-    lines += ["", "## Top schools"]
+    lines += ["", "## " + translate("heading_schools", language)]
     if schools.empty:
-        lines.append(f"No school in {area} has enough students to be ranked.")
+        lines.append(translate("no_school_ranked", language, area=area))
     else:
-        lines.append(f"The best schools in {area}, ranked by the average of both subjects:")
+        lines.append(translate("best_schools_intro", language, area=area))
         for school in schools.to_dict(orient="records"):
-            lines.append(f"{school['#']}. **{school['School']}** ({school['Town']}): {school['Both subjects']:.2f}, "
-                         f"{school['Vs area average']} the area's average")
+            lines.append(translate("school_item", language, rank=school["#"], school=school["School"], town=school["Town"],
+                                   score=f"{school['Both subjects']:.2f}", difference=school["Vs area average"]))
         # What the list has in common: the town where most of the top schools are
         towns_count = schools["Town"].value_counts()
         if towns_count.iloc[0] == len(schools) and len(schools) > 1:
-            lines.append(f"\nAll of the top schools are in {towns_count.index[0]}.")
+            lines.append("\n" + translate("all_top_in", language, town=towns_count.index[0]))
         elif towns_count.iloc[0] > len(schools) / 2:
-            lines.append(f"\nMost of the top schools are in {towns_count.index[0]}.")
+            lines.append("\n" + translate("most_top_in", language, town=towns_count.index[0]))
     return "\n".join(lines)
 
 
-def write_overview(exam_files, choice, region):
+def write_overview(exam_files, choice, region, language):
     """
     Rank the top towns and schools for the chosen exam and region and show them
     straight away, then stream the model's overview of them as it is written.
-    Each step yields the two tables and the text so far
+    Each step yields the two tables (with their column names translated) and the text so far
     """
     # An empty region box means the same as "All regions", as on the Schools tab
     region = region or ALL_REGIONS
-    kind, table = load_choice(exam_files, choice)
+    kind, table = load_choice(exam_files, choice, language)
     bel_students, bel_average, second_students, second_average = RESULT_COLUMNS[kind]
     if region != ALL_REGIONS:
         table = table[table["Region"] == region]
-    area = "Bulgaria (all regions)" if region == ALL_REGIONS else f"{region} region"
+    area = translate("area_all", language) if region == ALL_REGIONS else translate("region_name", language, region=region)
     min_town_students = MIN_TOWN_STUDENTS if region == ALL_REGIONS else MIN_TOWN_STUDENTS_IN_REGION
 
     towns = rank_towns(table, kind, min_town_students).head(TOP).copy()
     schools = rank_schools(table, kind).head(TOP).copy()
     if towns.empty and schools.empty:
-        yield towns, schools, f"Not enough data to rank: no town or school in {area} is big enough."
+        yield shown_table(towns, language), shown_table(schools, language), translate("not_enough_data", language, area=area)
         return
 
     # How far each town and school is from the area's average. The code calculates this,
@@ -734,22 +787,24 @@ def write_overview(exam_files, choice, region):
     area_averages = f"{bel_average} {bel:.2f}, {second_average} {second:.2f}, both subjects {area_both:.2f}"
     for ranked in (towns, schools):
         ranked["Vs area average"] = [
-            f"{abs(score - area_both):.2f} {'above' if score >= area_both else 'below'}"
+            translate("amount_above" if score >= area_both else "amount_below", language, amount=f"{abs(score - area_both):.2f}")
             for score in ranked["Both subjects"]
         ]
+    towns_shown, schools_shown = shown_table(towns, language), shown_table(schools, language)
 
-    problem = ollama_problem()
+    problem = ollama_problem(language)
     if problem:
         # No AI: the program writes the overview itself, from the same numbers
-        yield towns, schools, f"{template_overview(area, towns, schools)}\n\n*Written by the program, without AI. {problem}*"
+        yield towns_shown, schools_shown, (template_overview(area, towns, schools, language) + "\n\n"
+                                           + translate("written_without_ai", language, problem=problem))
         return
-    yield towns, schools, f"*{MODEL} is writing the overview - this takes 1 to 3 minutes on this computer...*"
+    yield towns_shown, schools_shown, translate("ai_writing", language, model=MODEL)
 
     text = ""
     try:
         stream = ollama.chat(
             model = MODEL,
-            messages = overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students),
+            messages = overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students, language),
             stream = True,
             think = THINK,
             options = {
@@ -761,12 +816,12 @@ def write_overview(exam_files, choice, region):
         )
         for chunk in stream:
             text += chunk.message.content
-            yield towns, schools, text
+            yield towns_shown, schools_shown, text
     except Exception as error:
         # Any failure (Ollama closed, a timeout...): the program writes the overview instead,
         # and says why, rather than leaving half a text or Gradio's generic "Error"
-        yield towns, schools, (f"{template_overview(area, towns, schools)}\n\n*Written by the program, because the AI "
-                               f"stopped with an error: {type(error).__name__}: {error}*")
+        yield towns_shown, schools_shown, (template_overview(area, towns, schools, language) + "\n\n"
+                                           + translate("ai_failed", language, error=f"{type(error).__name__}: {error}"))
 
 
 def schools_in_bulgaria(table):
@@ -917,19 +972,26 @@ def region_bars(regions, column, axis_title):
     return figure
 
 
-def show_map(exam_files, choice, subject):
+def unit_word(kind, language):
+    """
+    The unit of an exam's scores in the page's language: "points" for НВО, "grade" for ДЗИ
+    """
+    return translate("unit_points" if kind == "nvo" else "unit_grade", language)
+
+
+def show_map(exam_files, choice, subject, language):
     """
     The map tab: a summary of the biggest gaps, then the map and the bar chart of the
     28 regions, coloured by how far each region is from the national average
     """
-    kind, table = load_choice(exam_files, choice)
+    kind, table = load_choice(exam_files, choice, language)
     table = schools_in_bulgaria(table)
     subject = subject or MAP_SUBJECTS[0]
-    unit = "points" if kind == "nvo" else "grade"
+    unit = unit_word(kind, language)
     try:
         borders = load_region_map()
     except OSError:
-        return f"The map file {REGION_MAP_FILE.name} is missing: it must be next to this script.", None, None
+        return translate("map_missing", language, file=REGION_MAP_FILE.name), None, None
 
     national = subject_score(table, kind, subject)
     regions = pd.DataFrame(
@@ -938,13 +1000,18 @@ def show_map(exam_files, choice, subject):
         columns = ["Region", "Schools", "Score"]
     ).dropna(subset=["Score"])
     if national is None or regions.empty:
-        return f"No results for {subject} in {choice}.", None, None
+        return translate("no_results_subject", language, subject=subject_name(subject, language),
+                         choice=choice_label(choice, language)), None, None
     regions["Vs Bulgaria"] = regions["Score"] - national
     regions = regions.sort_values("Vs Bulgaria")
-    # The text shown when the mouse is over a region or its bar
+    # The text shown when the mouse is over a region or its bar. The region names are in Bulgarian;
+    # the pages in Latin letters (English, Romanian) also give the English name, like "ВАРНА (Varna)"
     english = {feature["properties"]["region"]: feature["properties"]["name_en"] for feature in borders["features"]}
     regions["Hover"] = [
-        f"<b>{region}</b> ({english.get(region, '')})<br>Average: {score:.2f}<br>vs Bulgaria: {difference:+.2f}<br>Schools: {schools}"
+        f"<b>{region}</b>{' (' + english.get(region, '') + ')' if language in ('en', 'ro') else ''}"
+        f"<br>{translate('hover_average', language)}: {score:.2f}"
+        f"<br>{translate('hover_vs_bulgaria', language)}: {difference:+.2f}"
+        f"<br>{translate('hover_schools', language)}: {schools}"
         for region, score, difference, schools in zip(regions["Region"], regions["Score"], regions["Vs Bulgaria"], regions["Schools"])
     ]
 
@@ -952,17 +1019,20 @@ def show_map(exam_files, choice, subject):
     cities = subject_score(table[table["Town"].str.startswith("ГР.")], kind, subject)
     villages = subject_score(table[table["Town"].str.startswith("С.")], kind, subject)
     summary = [
-        f"**{choice}** · {subject} · Bulgaria: average **{national:.2f}** {unit}",
-        f"- Best region: **{best['Region']}** {best['Score']:.2f} ({best['Vs Bulgaria']:+.2f}) · "
-        f"worst region: **{worst['Region']}** {worst['Score']:.2f} ({worst['Vs Bulgaria']:+.2f}) · "
-        f"gap: **{best['Score'] - worst['Score']:.2f}** {unit}"
+        translate("map_head", language, choice=choice_label(choice, language), subject=subject_name(subject, language),
+                  national=f"{national:.2f}", unit=unit),
+        translate("best_worst", language, best=best["Region"], best_score=f"{best['Score']:.2f}",
+                  best_difference=f"{best['Vs Bulgaria']:+.2f}", worst=worst["Region"], worst_score=f"{worst['Score']:.2f}",
+                  worst_difference=f"{worst['Vs Bulgaria']:+.2f}", gap=f"{best['Score'] - worst['Score']:.2f}", unit=unit)
     ]
     if cities is not None and villages is not None:
-        summary.append(f"- Cities (ГР.): {cities:.2f} · villages (С.): {villages:.2f} · gap: **{cities - villages:.2f}** {unit}")
+        summary.append(translate("cities_villages", language, cities=f"{cities:.2f}", villages=f"{villages:.2f}",
+                                 gap=f"{cities - villages:.2f}", unit=unit))
     return (
         "\n".join(summary),
-        region_map(regions, borders, "Vs Bulgaria", f"vs Bulgaria<br>({unit})", "0 = average"),
-        region_bars(regions, "Vs Bulgaria", f"Difference from the Bulgarian average ({unit})")
+        region_map(regions, borders, "Vs Bulgaria", translate("key_vs_bulgaria", language, unit=unit),
+                   translate("zero_average", language)),
+        region_bars(regions, "Vs Bulgaria", translate("bars_axis", language, unit=unit))
     )
 
 
@@ -975,7 +1045,7 @@ def exam_years(exam_files, choice):
     return sorted(other for other in exam_files if other.rsplit(" - ", 1)[0] == exam)
 
 
-def region_gaps(exam_files, choices, subject):
+def region_gaps(exam_files, choices, subject, language):
     """
     Each region's distance from the national average, for each of the given exams and years:
     a table with one row per region and one column per school year. Also returns the national
@@ -984,7 +1054,7 @@ def region_gaps(exam_files, choices, subject):
     """
     scores, national, spread = {}, {}, {}
     for choice in choices:
-        kind, table = load_choice(exam_files, choice)
+        kind, table = load_choice(exam_files, choice, language)
         table = schools_in_bulgaria(table)
         year = choice.rsplit(" - ", 1)[1]
         national[year] = subject_score(table, kind, subject)
@@ -996,65 +1066,75 @@ def region_gaps(exam_files, choices, subject):
     return gaps, national, pd.Series(spread, dtype=float)
 
 
-def show_change(exam_files, choice, subject):
+def region_list(regions_and_changes, language):
+    """
+    A few regions with their changes for a summary line, like "**ДОБРИЧ** +2.14, **ПЕРНИК** +1.76",
+    or "none" in the page's language
+    """
+    return ", ".join(f"**{region}** {change:+.2f}" for region, change in regions_and_changes) or translate("none", language)
+
+
+def show_change(exam_files, choice, subject, language):
     """
     The "Change since the previous year" view: how far each region moved compared with the
     national average, between the previous year and the chosen one
     """
-    kind, _ = load_choice(exam_files, choice)
+    kind, _ = load_choice(exam_files, choice, language)
     subject = subject or MAP_SUBJECTS[0]
-    unit = "points" if kind == "nvo" else "grade"
+    unit = unit_word(kind, language)
     years = exam_years(exam_files, choice)
     position = years.index(choice)
     if position == 0:
-        return f"**{choice}** is the first year in the data for this exam, so there's no previous year to compare with.", None, None
+        return translate("first_year", language, choice=choice_label(choice, language)), None, None
     try:
         borders = load_region_map()
     except OSError:
-        return f"The map file {REGION_MAP_FILE.name} is missing: it must be next to this script.", None, None
+        return translate("map_missing", language, file=REGION_MAP_FILE.name), None, None
 
-    gaps, national, _ = region_gaps(exam_files, [years[position - 1], choice], subject)
+    gaps, national, _ = region_gaps(exam_files, [years[position - 1], choice], subject, language)
     before, now = gaps.columns
     regions = gaps.rename(columns={before: "Before", now: "Now"}).dropna().rename_axis("Region").reset_index()
     regions["Change"] = regions["Now"] - regions["Before"]
     regions = regions.sort_values("Change")
     regions["Hover"] = [
-        f"<b>{region}</b><br>Change: {change:+.2f}<br>vs Bulgaria in {now}: {after:+.2f}<br>vs Bulgaria in {before}: {earlier:+.2f}"
+        f"<b>{region}</b><br>{translate('hover_change', language)}: {change:+.2f}"
+        f"<br>{translate('hover_vs_bulgaria_in', language, year=now)}: {after:+.2f}"
+        f"<br>{translate('hover_vs_bulgaria_in', language, year=before)}: {earlier:+.2f}"
         for region, change, after, earlier in zip(regions["Region"], regions["Change"], regions["Now"], regions["Before"])
     ]
 
     improved = regions[regions["Change"] > 0].iloc[::-1].head(3)
     fell_behind = regions[regions["Change"] < 0].head(3)
     summary = [
-        f"**{choice.rsplit(' - ', 1)[0]}: {before} → {now}** · {subject} · how far each region moved compared with "
-        f"the Bulgarian average",
-        "- Improved most: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in zip(improved["Region"], improved["Change"])) or "none"),
-        "- Fell behind most: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in zip(fell_behind["Region"], fell_behind["Change"])) or "none"),
-        f"- Typical movement: {regions['Change'].abs().median():.2f} {unit}. Smaller changes are often just year-to-year noise.",
-        f"- Bulgaria's own average went from {national[before]:.2f} to {national[now]:.2f} ({national[now] - national[before]:+.2f}). "
-        f"That mostly reflects how hard each year's test was, which is why regions are compared with the national average."
+        translate("change_head", language, exam=exam_name(choice.rsplit(" - ", 1)[0], language), before=before, now=now,
+                  subject=subject_name(subject, language)),
+        translate("improved_most", language, regions=region_list(zip(improved["Region"], improved["Change"]), language)),
+        translate("fell_behind_most", language, regions=region_list(zip(fell_behind["Region"], fell_behind["Change"]), language)),
+        translate("typical_movement", language, amount=f"{regions['Change'].abs().median():.2f}", unit=unit),
+        translate("national_moved", language, before=f"{national[before]:.2f}", now=f"{national[now]:.2f}",
+                  change=f"{national[now] - national[before]:+.2f}")
     ]
     return (
         "\n".join(summary),
-        region_map(regions, borders, "Change", f"Change<br>({unit})", "0 = no change"),
-        region_bars(regions, "Change", f"Change vs the Bulgarian average ({unit})")
+        region_map(regions, borders, "Change", translate("key_change", language, unit=unit), translate("zero_no_change", language)),
+        region_bars(regions, "Change", translate("change_axis", language, unit=unit))
     )
 
 
-def show_trends(exam_files, choice, subject):
+def show_trends(exam_files, choice, subject, language):
     """
     The "Trends over the years" view: every region's distance from the national average in
     every year of the chosen exam, and how the gap between the best and worst region changed
     """
-    kind, _ = load_choice(exam_files, choice)
+    kind, _ = load_choice(exam_files, choice, language)
     subject = subject or MAP_SUBJECTS[0]
-    unit = "points" if kind == "nvo" else "grade"
+    unit = unit_word(kind, language)
     years = exam_years(exam_files, choice)
-    exam = choice.rsplit(" - ", 1)[0]
+    exam = exam_name(choice.rsplit(" - ", 1)[0], language)
     if len(years) < 2:
-        return f"There's only one year of {exam} in the data, so there's no trend to show yet.", None, None
+        return translate("one_year_only", language, exam=exam), None, None
 
-    gaps, _, school_spreads = region_gaps(exam_files, years, subject)
+    gaps, _, school_spreads = region_gaps(exam_files, years, subject, language)
     gaps = gaps.dropna(how="all")
     first, last = gaps.columns[0], gaps.columns[-1]
     # Best region at the top of the grid: Plotly draws the first row at the bottom
@@ -1070,41 +1150,40 @@ def show_trends(exam_files, choice, subject):
     caught_up = moved[moved > 0].iloc[::-1].head(3)
     fell_behind = moved[moved < 0].head(3)
     summary = [
-        f"**{exam}, {first} – {last}** · {subject} · each region's distance from the Bulgarian average, year by year",
-        f"- Gap between the best and worst region: {spread[first]:.2f} in {first} → **{spread[last]:.2f}** in {last} "
-        f"({spread[last] - spread[first]:+.2f} {unit})",
-        f"- The same gap compared with how spread out the schools' results were that year: "
-        f"{relative[first]:.2f} → **{relative[last]:.2f}** times the spread ({drift_words(relative[last] - relative[first])}). "
-        f"Some years' tests spread students further apart, which widens the gap by itself.",
-        f"- Caught up most since {first}: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in caught_up.items()) or "none"),
-        f"- Fell behind most since {first}: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in fell_behind.items()) or "none"),
-        f"- Below the national average in every year: {int((gaps < 0).all(axis=1).sum())} regions · "
-        f"above it in every year: {int((gaps > 0).all(axis=1).sum())} regions",
-        f"- Caught up and fell behind compare only the first and the last year, so one unusual "
-        f"year at either end can change them."
+        translate("trends_head", language, exam=exam, first=first, last=last, subject=subject_name(subject, language)),
+        translate("gap_line", language, first_gap=f"{spread[first]:.2f}", first=first, last_gap=f"{spread[last]:.2f}",
+                  last=last, change=f"{spread[last] - spread[first]:+.2f}", unit=unit),
+        translate("relative_line", language, first_relative=f"{relative[first]:.2f}", last_relative=f"{relative[last]:.2f}",
+                  drift=drift_words(relative[last] - relative[first], language)),
+        translate("caught_up_since", language, first=first, regions=region_list(caught_up.items(), language)),
+        translate("fell_behind_since", language, first=first, regions=region_list(fell_behind.items(), language)),
+        translate("every_year", language, below=int((gaps < 0).all(axis=1).sum()), above=int((gaps > 0).all(axis=1).sum())),
+        translate("endpoints_note", language)
     ]
-    return "\n".join(summary), trend_heatmap(gaps, unit), gap_trend_chart(spread, relative, unit)
+    return "\n".join(summary), trend_heatmap(gaps, kind, language), gap_trend_chart(spread, relative, kind, language)
 
 
-def drift_words(change):
+def drift_words(change, language):
     """
     Put a change in the gap compared with the spread into words. Changes smaller than 0.05
     of the spread are too small to mean anything
     """
     if change >= 0.05:
-        return "the regions drifted apart"
+        return translate("drift_apart", language)
     if change <= -0.05:
-        return "the regions came closer"
-    return "about the same"
+        return translate("drift_closer", language)
+    return translate("drift_same", language)
 
 
-def trend_heatmap(gaps, unit):
+def trend_heatmap(gaps, kind, language):
     """
     A grid with one row per region and one column per school year: each cell is coloured by
     the region's distance from that year's national average, with the number written in it
     """
-    limit, ticks, tick_labels = colour_key(pd.Series(gaps.values.ravel()), "0 = average")
-    decimals = 1 if unit == "points" else 2
+    limit, ticks, tick_labels = colour_key(pd.Series(gaps.values.ravel()), translate("zero_average", language))
+    unit = unit_word(kind, language)
+    # Points are big numbers, so one decimal is enough; grades need two
+    decimals = 1 if kind == "nvo" else 2
     figure = go.Figure(go.Heatmap(
         z = gaps.values,
         x = list(gaps.columns),
@@ -1118,8 +1197,10 @@ def trend_heatmap(gaps, unit):
         # A thin gap between the cells, so each one is easy to tell apart
         xgap = 2,
         ygap = 2,
-        colorbar = dict(title=f"vs Bulgaria<br>({unit})", tickvals=ticks, ticktext=tick_labels, len=0.6, thickness=14),
-        hovertemplate = "<b>%{y}</b>, %{x}<br>vs Bulgaria: %{z:+.2f}<extra></extra>"
+        colorbar = dict(title=translate("key_vs_bulgaria", language, unit=unit), tickvals=ticks, ticktext=tick_labels,
+                        len=0.6, thickness=14),
+        # %{y}, %{x} and %{z} are Plotly's codes for the cell's region, year and number
+        hovertemplate = "<b>%{y}</b>, %{x}<br>" + translate("hover_vs_bulgaria", language) + ": %{z:+.2f}<extra></extra>"
     ))
     figure.update_layout(
         height = 760,
@@ -1133,12 +1214,13 @@ def trend_heatmap(gaps, unit):
     return figure
 
 
-def gap_trend_chart(spread, relative, unit):
+def gap_trend_chart(spread, relative, kind, language):
     """
     A line chart of the gap between the best and the worst region, year by year:
     a rising line means the regions are drifting apart. The pop-up of each point also
     gives the gap compared with how spread out the schools' results were that year
     """
+    unit = unit_word(kind, language)
     figure = go.Figure(go.Scatter(
         x = list(spread.index),
         y = spread.values,
@@ -1151,8 +1233,9 @@ def gap_trend_chart(spread, relative, unit):
         line = dict(color="#2a78d6", width=2),
         marker = dict(size=8, color="#2a78d6"),
         customdata = relative.values,
-        hovertemplate = (f"%{{x}}<br>Gap: %{{y:.2f}} {unit}<br>"
-                         "= %{customdata:.2f} times the spread of the schools' results<extra></extra>")
+        # %{x}, %{y} and %{customdata} are Plotly's codes for the point's year, gap and gap ÷ spread
+        hovertemplate = (f"%{{x}}<br>{translate('hover_gap', language)}: %{{y:.2f}} {unit}<br>"
+                         f"= %{{customdata:.2f}} {translate('hover_times_spread', language)}<extra></extra>")
     ))
     figure.update_layout(
         height = 340,
@@ -1160,49 +1243,70 @@ def gap_trend_chart(spread, relative, unit):
         paper_bgcolor = "#fcfcfb",
         plot_bgcolor = "#fcfcfb",
         # From 0, with room above the highest point for its number
-        yaxis = dict(title=f"Best region minus worst ({unit})", range=[0, spread.max() * 1.2], gridcolor="#e6e6e3"),
+        yaxis = dict(title=translate("gap_axis", language, unit=unit), range=[0, spread.max() * 1.2], gridcolor="#e6e6e3"),
         xaxis = dict(tickvals=list(spread.index), ticktext=year_labels(spread.index), tickangle=0, gridcolor="#e6e6e3"),
         showlegend = False
     )
     return figure
 
 
-def build_page(exam_files, regions):
+def language_buttons(language):
     """
-    Build the Gradio web page. gr.Blocks (instead of gr.Interface) lets the town list
-    change when you pick a region, and gives the AI overview its own button
+    The 4 blue language buttons next to the title: links to the 4 versions of the page.
+    The page's own language is darker and marked as the current one
+    """
+    links = []
+    for code, label in LANGUAGES.items():
+        address = "/" if code == FIRST_LANGUAGE else f"/{code}"
+        current = ' class="current" aria-current="page"' if code == language else ""
+        links.append(f'<a href="{address}" hreflang="{code}"{current}>{label}</a>')
+    return '<nav class="language-buttons" aria-label="Language">' + "".join(links) + "</nav>"
+
+
+def build_language_page(page, exam_files, regions, language):
+    """
+    Build one language's version of the web page, inside `page`, the app that holds all 4.
+    gr.Blocks (instead of gr.Interface) lets the town list change when you pick a region,
+    and gives the AI overview its own button
     """
     choices = list(exam_files)
     # Start with the newest 7th grade results: the ones parents look at the most
     default = next((choice for choice in choices if choice.startswith("NVO 7th grade")), choices[0])
 
+    def api(name):
+        """
+        Each event's name for Gradio's API must be different in each language: "show", "show_en"...
+        """
+        return name if language == FIRST_LANGUAGE else f"{name}_{language}"
+
     def show(choice, region, town, search, rank_by):
-        return show_results(exam_files, choice, region, town, search, rank_by)
+        return show_results(exam_files, choice, region, town, search, rank_by, language)
 
     # Gradio streams the overview only when it gets a generator function
     def overview(choice, region):
-        yield from write_overview(exam_files, choice, region)
+        yield from write_overview(exam_files, choice, region, language)
 
     def refresh_towns(choice, region, current_town):
-        towns = town_choices(exam_files, choice, region)
-        # Keep the chosen town if it's still in the list
-        return gr.Dropdown(choices=towns, value=current_town if current_town in towns else ALL_TOWNS)
+        towns = town_choices(exam_files, choice, region, language)
+        # Keep the chosen town if it's still in the list. The list's first item is a (label, value) pair
+        values = [town[1] if isinstance(town, tuple) else town for town in towns]
+        return gr.Dropdown(choices=towns, value=current_town if current_town in values else ALL_TOWNS)
 
     # The map tab has three views. This draws the chosen one, names its two charts,
     # and puts a tick on the chosen view's button
     def map_view(choice, subject, view):
         if view == "change":
-            text, first_chart, second_chart = show_change(exam_files, choice, subject)
-            chart_names = ["Map: change since the previous year", "All regions, most improved at the top"]
+            text, first_chart, second_chart = show_change(exam_files, choice, subject, language)
+            chart_names = ["chart_change_map", "chart_change_bars"]
         elif view == "trends":
-            text, first_chart, second_chart = show_trends(exam_files, choice, subject)
-            chart_names = ["Every region, year by year (best at the top)", "Gap between the best and worst region"]
+            text, first_chart, second_chart = show_trends(exam_files, choice, subject, language)
+            chart_names = ["chart_trend_grid", "chart_trend_gap"]
         else:
-            text, first_chart, second_chart = show_map(exam_files, choice, subject)
-            chart_names = ["Map", "All regions, best at the top"]
-        buttons = [gr.Button(value=("✓ " if key == view else "") + name) for key, name in MAP_VIEWS.items()]
-        return [view, text, gr.Plot(value=first_chart, label=chart_names[0]),
-                gr.Plot(value=second_chart, label=chart_names[1])] + buttons
+            text, first_chart, second_chart = show_map(exam_files, choice, subject, language)
+            chart_names = ["chart_map", "chart_bars"]
+        buttons = [gr.Button(value=("✓ " if key == view else "") + translate(f"view_{key}", language)) for key in MAP_VIEWS]
+        return [view, text, gr.Plot(value=first_chart, label=translate(chart_names[0], language)),
+                gr.Plot(value=second_chart, label=translate(chart_names[1], language))] + buttons
 
     # One small function per view button
     def difference_view(choice, subject):
@@ -1217,26 +1321,125 @@ def build_page(exam_files, regions):
     # The green button: check the portal for new files, then refresh the "Exam and school year" list.
     # It's a generator, so the page can say "Checking..." while it works
     def check_for_new_results(current_choice):
-        yield "*Checking data.egov.bg for new results files: this takes about 20 seconds...*", gr.update()
+        yield translate("checking", language), gr.update()
         try:
             new_files = update_database()
         except Exception as error:
-            yield f"Couldn't check for new results: {type(error).__name__}: {error}  \n{database_status()}", gr.update()
+            yield (translate("check_failed", language, error=f"{type(error).__name__}: {error}") + "  \n"
+                   + database_status(language)), gr.update()
             return
-        # Refill the shared dictionary of files, so every part of the page sees the new ones
+        # Refill the shared dictionary of files, so every part of the page (in every language) sees the new ones
         files = stored_files()
         exam_files.clear()
         exam_files.update(files)
         if new_files:
-            found = f"Added {len(new_files)} new results files: {', '.join(new_files)}."
+            found = translate("files_added", language, count=len(new_files),
+                              files=", ".join(choice_label(choice, language) for choice in new_files))
         else:
-            found = "No new results: the database is up to date."
-        yield f"{found}  \n{database_status()}", gr.Dropdown(choices=list(exam_files), value=current_choice)
+            found = translate("no_new_files", language)
+        yield f"{found}  \n{database_status(language)}", gr.Dropdown(choices=choice_list(exam_files, language), value=current_choice)
 
-    # The buttons' colours:
+    # The title, with the 4 language buttons to its right
+    with gr.Row(equal_height=True):
+        gr.Markdown("# " + translate("page_title", language))
+        # A narrow column on the right, just wide enough for the 4 buttons
+        with gr.Column(scale=0, min_width=260):
+            gr.HTML(language_buttons(language))
+    gr.Markdown(translate("intro", language))
+    with gr.Row(equal_height=True):
+        database_info = gr.Markdown(database_status(language))
+        check_button = gr.Button(translate("check_button", language), elem_id="check-button", scale=0, min_width=270)
+    with gr.Row():
+        # The lists show translated labels, but give the code English values: (label, value) pairs
+        exam = gr.Dropdown(choice_list(exam_files, language), label=translate("exam_label", language), value=default)
+        region = gr.Dropdown([(translate("all_regions", language), ALL_REGIONS)] + regions,
+                             label=translate("region_label", language), value=ALL_REGIONS)
+        town = gr.Dropdown(town_choices(exam_files, default, ALL_REGIONS, language),
+                           label=translate("town_label", language), value=ALL_TOWNS)
+    with gr.Row():
+        search = gr.Textbox(label=translate("search_label", language), placeholder=translate("search_placeholder", language))
+        rank_by = gr.Radio([(subject_name(value, language), value) for value in RANK_BY],
+                           label=translate("rank_label", language), value=RANK_BY[0])
+    with gr.Row():
+        show_button = gr.Button(translate("show_button", language), elem_classes="grey-button")
+        overview_button = gr.Button(translate("overview_button", language, top=TOP, model=MODEL), elem_classes="grey-button")
+
+    # Which view the map tab shows: "difference", "change" or "trends". It's not drawn on the page:
+    # gr.State only remembers a value for each visitor
+    map_view_state = gr.State("difference")
+    with gr.Tabs(elem_id="main-tabs") as tabs:
+        with gr.Tab(translate("tab_schools", language), id="schools"):
+            summary = gr.Markdown()
+            results = gr.Dataframe(label=translate("schools_table", language))
+        with gr.Tab(translate("tab_top", language, top=TOP), id="top"):
+            gr.Markdown(translate("top_intro", language, min_town=MIN_TOWN_STUDENTS, min_town_region=MIN_TOWN_STUDENTS_IN_REGION,
+                                  min_school=MIN_SCHOOL_STUDENTS, model=MODEL))
+            top_towns = gr.Dataframe(label=translate("top_towns_table", language, top=TOP))
+            top_schools = gr.Dataframe(label=translate("top_schools_table", language, top=TOP))
+            overview_text = gr.Markdown()
+        with gr.Tab(translate("tab_map", language), id="map") as map_tab:
+            gr.Markdown(translate("map_intro", language))
+            with gr.Row():
+                difference_button = gr.Button("✓ " + translate("view_difference", language), elem_classes="grey-button")
+                change_button = gr.Button(translate("view_change", language), elem_classes="grey-button")
+                trends_button = gr.Button(translate("view_trends", language), elem_classes="grey-button")
+            map_subject = gr.Radio([(subject_name(value, language), value) for value in MAP_SUBJECTS],
+                                   label=translate("colour_by", language), value=MAP_SUBJECTS[0])
+            map_summary = gr.Markdown()
+            with gr.Row():
+                map_plot = gr.Plot(label=translate("chart_map", language), scale=3)
+                bars_plot = gr.Plot(label=translate("chart_bars", language), scale=2)
+            gr.Markdown(f"*{translate('map_note', language)}*  \n{translate('borders_credit', language)}")
+
+    filters = [exam, region, town, search, rank_by]
+    shown = [summary, results]
+
+    def show_schools_tab():
+        return gr.Tabs(selected="schools")
+
+    # A new exam or region changes which towns are in the list, then shows the new results
+    exam.change(refresh_towns, [exam, region, town], town, api_name=False).then(
+        show, filters, shown, api_name=False)
+    region.change(refresh_towns, [exam, region, town], town, api_name=False).then(
+        show, filters, shown, api_name=False)
+    # Picking a town or a ranking also shows the new results straight away.
+    # .input (instead of .change) reacts only to you, not to refresh_towns resetting the town,
+    # which would show the results twice
+    town.input(show, filters, shown, api_name=False)
+    rank_by.input(show, filters, shown, api_name=False)
+    # The button and Enter in the search box first switch to the Schools tab, then show the results
+    show_button.click(show_schools_tab, None, tabs, api_name=False).then(
+        show, filters, shown, api_name=api("show"))
+    search.submit(show_schools_tab, None, tabs, api_name=False).then(
+        show, filters, shown, api_name=False)
+    overview_button.click(lambda: gr.Tabs(selected="top"), None, tabs, api_name=False).then(
+        overview, [exam, region], [top_towns, top_schools, overview_text], api_name=api("overview"))
+    # Show the default results as soon as the page opens
+    page.load(show, filters, shown, api_name=False)
+    # The map is drawn when you open its tab (a chart drawn in a hidden tab can get the
+    # wrong size), and again when you change the exam, what it's coloured by, or the view
+    map_shown = [map_view_state, map_summary, map_plot, bars_plot, difference_button, change_button, trends_button]
+    map_tab.select(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
+    exam.change(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
+    map_subject.input(map_view, [exam, map_subject, map_view_state], map_shown, api_name=api("map"))
+    difference_button.click(difference_view, [exam, map_subject], map_shown, api_name=api("map_difference"))
+    change_button.click(change_view, [exam, map_subject], map_shown, api_name=api("map_change"))
+    trends_button.click(trends_view, [exam, map_subject], map_shown, api_name=api("map_trends"))
+    # The green button updates the database line and the list of exams and years
+    check_button.click(check_for_new_results, [exam], [database_info, exam], api_name=api("check"))
+
+
+def build_app(exam_files, regions):
+    """
+    Build the whole app: the Bulgarian page at the plain address, and the English, Russian and
+    Romanian pages at /en, /ru and /ro. Gradio calls each extra page a "route"
+    """
+    # The page's colours and sizes, in CSS:
     # - "Check for new results" is green: white text on #1a7f37 has a contrast of 5.1:1, so it's
     #   easy to read; the darker #116329 shows when the mouse is over it
     # - the other buttons are light grey: dark text on #e9e9e7 has a contrast of 13.6:1
+    # - the language buttons are blue: white text on #0b5cad has a contrast of 6.7:1; the current
+    #   language is darker (#073d73, 10.9:1) and underlined, so it doesn't rely on colour alone
     # The three tabs' names are centred, bold and two text sizes bigger than normal (--text-xl
     # instead of --text-md), so the tabs are easy to find. In a narrow window they wrap onto a
     # second line ("flex-wrap"), because centred tabs that don't fit would be cut off on both sides
@@ -1248,109 +1451,35 @@ def build_page(exam_files, regions):
         "#main-tabs .tab-wrapper, #main-tabs .tab-container { justify-content: center; height: auto; }"
         "#main-tabs .tab-container { flex-wrap: wrap; }"
         "#main-tabs .tab-container button[role='tab'] { font-size: var(--text-xl); font-weight: 700; }"
+        ".language-buttons { display: flex; gap: 8px; justify-content: flex-end; align-items: center; height: 100%; }"
+        ".language-buttons a { background: #0b5cad !important; color: #ffffff !important; text-decoration: none !important;"
+        " font-weight: 700; padding: 6px 14px; border-radius: 6px; }"
+        ".language-buttons a:hover { background: #094a8c !important; }"
+        ".language-buttons a.current { background: #073d73 !important; text-decoration: underline !important;"
+        " text-underline-offset: 4px; }"
+        # Gradio adds its own menu of the pages at the very top; the language buttons do its job
+        ".nav-holder { display: none !important; }"
     )
 
-    with gr.Blocks(title="Bulgarian school exam results", css=page_style) as page:
-        gr.Markdown(
-            "# Bulgarian school exam results\n"
-            "Official results by school from the Ministry of Education and Science (МОН), "
-            "published on the national open data portal data.egov.bg. "
-            "**NVO** (НВО) = national external assessment, average score in points (maximum 100). "
-            "**DZI** (ДЗИ) = state matriculation exams (матури), May-June session, average grade from 2 to 6. "
-            "**BEL** = Bulgarian language and literature, **MAT** = Maths."
-        )
-        with gr.Row(equal_height=True):
-            database_info = gr.Markdown(database_status())
-            check_button = gr.Button("Check for new results", elem_id="check-button", scale=0, min_width=220)
-        with gr.Row():
-            exam = gr.Dropdown(choices, label="Exam and school year", value=default)
-            region = gr.Dropdown([ALL_REGIONS] + regions, label="Region (област)", value=ALL_REGIONS)
-            town = gr.Dropdown(town_choices(exam_files, default, ALL_REGIONS), label="Town (град / село) - type to search", value=ALL_TOWNS)
-        with gr.Row():
-            search = gr.Textbox(label="School, town or municipality contains", placeholder="for example: Математическа")
-            rank_by = gr.Radio(RANK_BY, label="Rank schools by", value=RANK_BY[0])
-        with gr.Row():
-            show_button = gr.Button("Show results", elem_classes="grey-button")
-            overview_button = gr.Button(f"Write AI overview of the top {TOP} ({MODEL})", elem_classes="grey-button")
-
-        # Which view the map tab shows: "difference", "change" or "trends". It's not drawn on the page:
-        # gr.State only remembers a value for each visitor
-        map_view_state = gr.State("difference")
-        with gr.Tabs(elem_id="main-tabs") as tabs:
-            with gr.Tab("Schools", id="schools"):
-                summary = gr.Markdown()
-                results = gr.Dataframe(label="Schools")
-            with gr.Tab(f"Top {TOP} towns and schools + AI overview", id="top"):
-                gr.Markdown(
-                    f"For the chosen exam and region, ranked by the **average of both subjects**. "
-                    f"Towns need at least {MIN_TOWN_STUDENTS} students in each exam ({MIN_TOWN_STUDENTS_IN_REGION} "
-                    f"inside one region), and schools at least {MIN_SCHOOL_STUDENTS}. The tables come from the data; "
-                    f"the text below them is written by {MODEL} on this computer, or by the program itself "
-                    f"when the AI isn't available."
-                )
-                top_towns = gr.Dataframe(label=f"Top {TOP} towns")
-                top_schools = gr.Dataframe(label=f"Top {TOP} schools")
-                overview_text = gr.Markdown()
-            with gr.Tab("Map and trends of the regions", id="map") as map_tab:
-                gr.Markdown(
-                    "The 28 regions for the chosen exam, always compared with the **Bulgarian average**, which "
-                    "cancels out how easy or hard each year's test was. **Dark red** = far below (or fell behind), "
-                    "**yellow** = about average (or no change), **light green** = far above (or improved). "
-                    "Darker always means lower. The map always shows the whole country."
-                )
-                with gr.Row():
-                    difference_button = gr.Button("✓ " + MAP_VIEWS["difference"], elem_classes="grey-button")
-                    change_button = gr.Button(MAP_VIEWS["change"], elem_classes="grey-button")
-                    trends_button = gr.Button(MAP_VIEWS["trends"], elem_classes="grey-button")
-                map_subject = gr.Radio(MAP_SUBJECTS, label="Colour by", value=MAP_SUBJECTS[0])
-                map_summary = gr.Markdown()
-                with gr.Row():
-                    map_plot = gr.Plot(label="Map", scale=3)
-                    bars_plot = gr.Plot(label="All regions, best at the top", scale=2)
-                gr.Markdown(f"*{MAP_NOTE}*  \nRegion borders: Natural Earth (public domain).")
-
-        filters = [exam, region, town, search, rank_by]
-        shown = [summary, results]
-
-        def show_schools_tab():
-            return gr.Tabs(selected="schools")
-
-        # A new exam or region changes which towns are in the list, then shows the new results
-        exam.change(refresh_towns, [exam, region, town], town, api_name=False).then(
-            show, filters, shown, api_name=False)
-        region.change(refresh_towns, [exam, region, town], town, api_name=False).then(
-            show, filters, shown, api_name=False)
-        # Picking a town or a ranking also shows the new results straight away.
-        # .input (instead of .change) reacts only to you, not to refresh_towns resetting the town,
-        # which would show the results twice
-        town.input(show, filters, shown, api_name=False)
-        rank_by.input(show, filters, shown, api_name=False)
-        # The button and Enter in the search box first switch to the Schools tab, then show the results
-        show_button.click(show_schools_tab, None, tabs, api_name=False).then(
-            show, filters, shown, api_name="show")
-        search.submit(show_schools_tab, None, tabs, api_name=False).then(
-            show, filters, shown, api_name=False)
-        overview_button.click(lambda: gr.Tabs(selected="top"), None, tabs, api_name=False).then(
-            overview, [exam, region], [top_towns, top_schools, overview_text], api_name="overview")
-        # Show the default results as soon as the page opens
-        page.load(show, filters, shown, api_name=False)
-        # The map is drawn when you open its tab (a chart drawn in a hidden tab can get the
-        # wrong size), and again when you change the exam, what it's coloured by, or the view
-        map_shown = [map_view_state, map_summary, map_plot, bars_plot, difference_button, change_button, trends_button]
-        map_tab.select(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
-        exam.change(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
-        map_subject.input(map_view, [exam, map_subject, map_view_state], map_shown, api_name="map")
-        difference_button.click(difference_view, [exam, map_subject], map_shown, api_name="map_difference")
-        change_button.click(change_view, [exam, map_subject], map_shown, api_name="map_change")
-        trends_button.click(trends_view, [exam, map_subject], map_shown, api_name="map_trends")
-        # The green button updates the database line and the list of exams and years
-        check_button.click(check_for_new_results, [exam], [database_info, exam], api_name="check")
-    return page
+    with gr.Blocks(title=translate("page_title", FIRST_LANGUAGE), css=page_style) as app:
+        build_language_page(app, exam_files, regions, FIRST_LANGUAGE)
+    for language, label in LANGUAGES.items():
+        if language == FIRST_LANGUAGE:
+            continue
+        with app.route(label, f"/{language}"):
+            build_language_page(app, exam_files, regions, language)
+    return app
 
 
 def main():
     # Lets the Windows terminal print Cyrillic, like "Министерство"
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+    # Every text must exist in all 4 languages: stop with a clear message if one is missing
+    missing = missing_translations()
+    if missing:
+        print(f"translations.py is missing these texts: {', '.join(missing)}")
+        sys.exit(1)
 
     try:
         exam_files = stored_files()
@@ -1366,7 +1495,7 @@ def main():
         # Schools abroad are missing from some years, so make sure they're in the list
         first_choice, (first_kind, _) = next(iter(exam_files.items()))
         regions = sorted(set(read_results(first_choice, first_kind)["Region"]) | {ABROAD})
-        page = build_page(exam_files, regions)
+        page = build_app(exam_files, regions)
     except Exception as error:
         # Anything else, like the portal changing the layout of its data:
         # a clear message instead of a long Python error
@@ -1379,8 +1508,8 @@ def main():
     missing = [exam for exam in EXAMS if exam not in found_exams]
     if missing:
         print(f"Note: no results found for {', '.join(missing)} - the ministry may have renamed or moved them")
-    # The AI overview needs Ollama, but the rest of the page doesn't: just warn
-    problem = ollama_problem()
+    # The AI overview needs Ollama, but the rest of the page doesn't: just warn (in English, in the terminal)
+    problem = ollama_problem("en")
     if problem:
         print(f"Note: {problem}")
     page.launch(inbrowser=True)

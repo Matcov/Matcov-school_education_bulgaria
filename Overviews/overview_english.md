@@ -98,6 +98,12 @@ The user interface is built with **Gradio** (`gr.Blocks`) and has three tabs. Ab
 * **Note under the map:** the colours show differences in results, not the quality of the schools.
 * **Region borders:** Natural Earth (public domain), in the file [bulgaria_regions.geojson](../bulgaria_regions.geojson).
 
+### Four languages
+* **Blue EN BG RU RO buttons** next to the title switch the whole page: labels, summaries, charts and the AI overview. Bulgarian opens at the plain address (`http://127.0.0.1:7860`); English, Russian and Romanian are at `/en`, `/ru` and `/ro`.
+* **All texts are in one file,** [translations.py](../translations.py): 137 texts, each in the 4 languages. The app checks at start that none is missing.
+* **The calculations are the same in every language:** the lists show translated labels but give the code the same English values.
+* **Kept as they are:** school, town and region names, as the ministry writes them, and the decimal point (55.28). Whole numbers get a space between thousands outside English (53 739).
+
 ---
 
 ## 6. Structure of the `schools/` folder

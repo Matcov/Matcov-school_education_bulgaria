@@ -220,6 +220,23 @@ Top 3 schools by Bulgarian score:
    - **The buttons are light grey** (dark text on `#e9e9e7`, a contrast of 13.6:1), except the green
      **Check for new results**, which stands out.
    - **Speed:** reading one exam and year from the database takes about 20 milliseconds.
+4. **Four languages.** Blue **EN BG RU RO** buttons next to the title switch the whole page.
+   - **Addresses:** Bulgarian at the plain address (http://127.0.0.1:7860), and English, Russian
+     and Romanian at `/en`, `/ru` and `/ro`. Gradio builds them as 4 "routes" of one app, so each
+     language can be shared as a link.
+   - **One table of texts:** [translations.py](translations.py) holds all 137 texts, each in the
+     4 languages. The app checks at start that none is missing.
+   - **The code never changes language:** the lists show translated labels but give the code the
+     English values, like "NVO 7th grade - 2025/2026". So the calculations are the same in every
+     language. Tested: all 25 files × 3 subjects × 3 views, the Schools tab and the overview, in
+     all 4 languages, with no text left untranslated.
+   - **Kept as they are:** school, town and region names (as the ministry writes them), and the
+     decimal point (55.28) in every language. Whole numbers get a space between thousands outside
+     English (53 739), because "53,739" reads as a decimal in Bulgarian, Russian and Romanian.
+   - **The AI overview** is written in the page's language. It gets the facts in English, which it
+     reads best, and the instruction "Write the whole answer in Bulgarian" (or another language).
+   - **Texts that needed plural forms were reworded,** like "Schools: 1,738" instead of
+     "1738 schools", because Bulgarian and Russian change the word with the number.
 
 Run it with `uv run education_bulgaria/alex_school_results.py` in this project, or with
 `python alex_school_results.py` from a downloaded copy (see [README.md](README.md)). Ollama is only
