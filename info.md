@@ -214,7 +214,7 @@ Top 3 schools by Bulgarian score:
    - **Minimum sizes,** so tiny villages and schools don't top the lists: 100 students per town
      nationally, 30 per town inside one region (with 100, most regions had only 1–2 ranked towns),
      and 10 per school.
-   - **"Map of the regions" (third tab):** three buttons switch between three views of the 28
+   - **"Map and trends of the regions" (third tab):** three buttons switch between three views of the 28
      regions, always compared with the national average: the difference from it, the change since
      the previous year, and the trends over the years. See the section below.
    - **The buttons are light grey** (dark text on `#e9e9e7`, a contrast of 13.6:1), except the green

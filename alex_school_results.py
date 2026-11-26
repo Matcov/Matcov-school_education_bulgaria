@@ -1237,14 +1237,20 @@ def build_page(exam_files, regions):
     # - "Check for new results" is green: white text on #1a7f37 has a contrast of 5.1:1, so it's
     #   easy to read; the darker #116329 shows when the mouse is over it
     # - the other buttons are light grey: dark text on #e9e9e7 has a contrast of 13.6:1
-    button_colours = (
+    # The three tabs' names are centred, bold and two text sizes bigger than normal (--text-xl
+    # instead of --text-md), so the tabs are easy to find. In a narrow window they wrap onto a
+    # second line ("flex-wrap"), because centred tabs that don't fit would be cut off on both sides
+    page_style = (
         "#check-button { background: #1a7f37 !important; color: #ffffff !important; border-color: #1a7f37 !important; }"
         "#check-button:hover { background: #116329 !important; border-color: #116329 !important; }"
         ".grey-button { background: #e9e9e7 !important; color: #1f1f1f !important; border: 1px solid #8f8f8b !important; }"
         ".grey-button:hover { background: #dcdcd9 !important; }"
+        "#main-tabs .tab-wrapper, #main-tabs .tab-container { justify-content: center; height: auto; }"
+        "#main-tabs .tab-container { flex-wrap: wrap; }"
+        "#main-tabs .tab-container button[role='tab'] { font-size: var(--text-xl); font-weight: 700; }"
     )
 
-    with gr.Blocks(title="Bulgarian school exam results", css=button_colours) as page:
+    with gr.Blocks(title="Bulgarian school exam results", css=page_style) as page:
         gr.Markdown(
             "# Bulgarian school exam results\n"
             "Official results by school from the Ministry of Education and Science (МОН), "
@@ -1270,7 +1276,7 @@ def build_page(exam_files, regions):
         # Which view the map tab shows: "difference", "change" or "trends". It's not drawn on the page:
         # gr.State only remembers a value for each visitor
         map_view_state = gr.State("difference")
-        with gr.Tabs() as tabs:
+        with gr.Tabs(elem_id="main-tabs") as tabs:
             with gr.Tab("Schools", id="schools"):
                 summary = gr.Markdown()
                 results = gr.Dataframe(label="Schools")
@@ -1285,7 +1291,7 @@ def build_page(exam_files, regions):
                 top_towns = gr.Dataframe(label=f"Top {TOP} towns")
                 top_schools = gr.Dataframe(label=f"Top {TOP} schools")
                 overview_text = gr.Markdown()
-            with gr.Tab("Map of the regions", id="map") as map_tab:
+            with gr.Tab("Map and trends of the regions", id="map") as map_tab:
                 gr.Markdown(
                     "The 28 regions for the chosen exam, always compared with the **Bulgarian average**, which "
                     "cancels out how easy or hard each year's test was. **Dark red** = far below (or fell behind), "

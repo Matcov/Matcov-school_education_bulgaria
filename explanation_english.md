@@ -362,7 +362,7 @@ overview()
       └─ ollama.chat()                       gemma4 writes, word by word
 ```
 
-**Journey D: you open the "Map of the regions" tab** (or click one of its three buttons, change the
+**Journey D: you open the "Map and trends of the regions" tab** (or click one of its three buttons, change the
 exam, or change "Colour by")
 
 The three buttons call `difference_view()`, `change_view()` or `trends_view()`. Each one calls
@@ -921,7 +921,7 @@ click the green **Check for new results** button.
 - **Called by:** `show_map()` and `show_change()`.
 
 #### `show_map(exam_files, choice, subject)`: [line 920](alex_school_results.py#L920)
-- **In one sentence:** makes everything on the "Map of the regions" tab: the summary of the gaps, the
+- **In one sentence:** makes everything on the "Map and trends of the regions" tab: the summary of the gaps, the
   map and the bar chart.
 - **Gets:** the chosen exam and year, and the subject from "Colour by". **Gives back three values:**
   the summary text, the map and the bar chart.
@@ -1067,6 +1067,10 @@ click the green **Check for new results** button.
        has a contrast of 5.1:1, so it's easy to read.
      - `elem_classes="grey-button"` puts the other buttons in a group, and the rule `.grey-button`
        makes them all light grey (dark text on `#e9e9e7`, a contrast of 13.6:1).
+     - `gr.Tabs(elem_id="main-tabs")` names the tab bar, and two more rules make the three tab names
+       centred, bold (`font-weight: 700`) and two text sizes bigger (`--text-xl`, 22px, instead of the
+       normal `--text-md`, 14px). `flex-wrap: wrap` lets them go onto a second line in a narrow
+       window: otherwise the centred tabs would be cut off on both sides.
   4. **`gr.State("difference")`** remembers which of the map's three views you chose last. It isn't
      drawn on the page: it's a small memory, one for each visitor.
   5. It connects the **events**: `thing.event(function, inputs, outputs)` means "when this happens,
@@ -1080,7 +1084,7 @@ click the green **Check for new results** button.
 | pick a town, or change "Rank schools by" | `show()` |
 | click "Show results", or press Enter in the search box | `show_schools_tab()`, then `show()` |
 | click "Write AI overview" | switch to the second tab, then `overview()` |
-| open the "Map of the regions" tab, change the exam, or change "Colour by" | `map_view()`, with the view you chose last |
+| open the "Map and trends of the regions" tab, change the exam, or change "Colour by" | `map_view()`, with the view you chose last |
 | click "Difference from Bulgaria", "Change since the previous year" or "Trends over the years" | `difference_view()`, `change_view()` or `trends_view()`, which call `map_view()` |
 | click the green "Check for new results" button | `check_for_new_results()` |
 
@@ -1113,7 +1117,7 @@ click the green **Check for new results** button.
   - The Town list uses `.input`, so the results aren't shown twice when `refresh_towns()` resets
     the town.
 
-#### `main()`: [line 1345](alex_school_results.py#L1345)
+#### `main()`: [line 1351](alex_school_results.py#L1351)
 - **In one sentence:** the starting point: it gets the data ready from the database, builds the page
   and opens it in your browser.
 - **How:**

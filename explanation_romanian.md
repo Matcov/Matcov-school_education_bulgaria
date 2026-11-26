@@ -363,7 +363,7 @@ overview()
       └─ ollama.chat()                       gemma4 scrie, cuvânt cu cuvânt
 ```
 
-**Parcursul D: deschizi fila „Map of the regions”** (sau apeși unul dintre cele trei butoane ale ei,
+**Parcursul D: deschizi fila „Map and trends of the regions”** (sau apeși unul dintre cele trei butoane ale ei,
 schimbi examenul sau schimbi „Colour by”)
 
 Cele trei butoane apelează `difference_view()`, `change_view()` sau `trends_view()`. Fiecare dintre
@@ -939,7 +939,7 @@ atunci când apeși butonul verde **Check for new results**.
 - **Apelată de:** `show_map()` și `show_change()`.
 
 #### `show_map(exam_files, choice, subject)`: [linia 920](alex_school_results.py#L920)
-- **Într-o propoziție:** face tot ce apare în fila „Map of the regions”: rezumatul diferențelor,
+- **Într-o propoziție:** face tot ce apare în fila „Map and trends of the regions”: rezumatul diferențelor,
   harta și graficul cu bare.
 - **Primește:** examenul și anul alese și materia din „Colour by” (colorează după). **Dă înapoi
   trei valori:** textul rezumatului, harta și graficul cu bare.
@@ -1087,6 +1087,10 @@ atunci când apeși butonul verde **Check for new results**.
        are un contrast de 5,1:1, așa că se citește ușor.
      - `elem_classes="grey-button"` pune celelalte butoane într-un grup, iar regula `.grey-button`
        le face pe toate gri deschis (text închis pe `#e9e9e7`, un contrast de 13,6:1).
+     - `gr.Tabs(elem_id="main-tabs")` dă un nume barei de file, iar încă două reguli fac numele celor
+       trei file centrate, îngroșate (`font-weight: 700`) și cu două mărimi mai mari (`--text-xl`, 22px,
+       în loc de obișnuitul `--text-md`, 14px). `flex-wrap: wrap` le lasă să treacă pe un al doilea rând
+       într-o fereastră îngustă: altfel filele centrate ar fi tăiate în ambele părți.
   4. **`gr.State("difference")`** ține minte care dintre cele trei vederi ale hărții ai ales
      ultima. Nu se desenează pe pagină: este o mică memorie, câte una pentru fiecare vizitator.
   5. Leagă **evenimentele**: `thing.event(function, inputs, outputs)` înseamnă „când se întâmplă
@@ -1100,7 +1104,7 @@ atunci când apeși butonul verde **Check for new results**.
 | alegi o localitate sau schimbi „Rank schools by” | `show()` |
 | apeși „Show results” sau Enter în căsuța de căutare | `show_schools_tab()`, apoi `show()` |
 | apeși „Write AI overview” | trece la a doua filă, apoi `overview()` |
-| deschizi fila „Map of the regions”, schimbi examenul sau schimbi „Colour by” | `map_view()`, cu vederea aleasă ultima |
+| deschizi fila „Map and trends of the regions”, schimbi examenul sau schimbi „Colour by” | `map_view()`, cu vederea aleasă ultima |
 | apeși „Difference from Bulgaria”, „Change since the previous year” sau „Trends over the years” | `difference_view()`, `change_view()` sau `trends_view()`, care apelează `map_view()` |
 | apeși butonul verde „Check for new results” | `check_for_new_results()` |
 
@@ -1134,7 +1138,7 @@ atunci când apeși butonul verde **Check for new results**.
   - Lista de localități folosește `.input`, ca rezultatele să nu fie afișate de două ori când
     `refresh_towns()` resetează localitatea.
 
-#### `main()`: [linia 1345](alex_school_results.py#L1345)
+#### `main()`: [linia 1351](alex_school_results.py#L1351)
 - **Într-o propoziție:** punctul de pornire: pregătește datele din baza de date, construiește pagina
   și o deschide în browserul tău.
 - **Cum:**

@@ -36,7 +36,7 @@ beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgaria
     only words it.
   - If the AI isn't available, the program writes a plainer overview itself, from the same
     numbers.
-- **Map of the regions:** the 28 regions, always compared with the **national average**. That
+- **Map and trends of the regions:** the 28 regions, always compared with the **national average**. That
   cancels out how easy or hard each year's test was, so years can be compared fairly. Three
   buttons switch between three views:
   - **Difference from Bulgaria:** a map with each region coloured by how far its results are from
