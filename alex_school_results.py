@@ -154,6 +154,13 @@ REGION_MAP_FILE = Path(__file__).parent / "bulgaria_regions.geojson"
 # What the map can be coloured by
 MAP_SUBJECTS = ["Both subjects", "Bulgarian (BEL)", "Maths / 2nd exam"]
 
+# The map tab's three views, and the label of each one's button
+MAP_VIEWS = {
+    "difference": "Difference from Bulgaria",
+    "change": "Change since the previous year",
+    "trends": "Trends over the years"
+}
+
 # The map's colours, from far below the national average to far above it:
 # dark red -> red -> yellow (about average) -> light green.
 # They also get steadily lighter, so darker always means lower results, even in black and
@@ -788,6 +795,22 @@ def subject_score(schools, kind, subject):
     return (bel + second) / 2
 
 
+def school_spread(schools, kind, subject):
+    """
+    How spread out the schools' results are: the standard deviation of their scores in the
+    chosen subject. Some years' tests spread students further apart than others, which also
+    widens the gap between regions, so the trends compare that gap with this spread
+    """
+    bel_average, second_average = RESULT_COLUMNS[kind][1], RESULT_COLUMNS[kind][3]
+    if subject == MAP_SUBJECTS[1]:
+        scores = schools[bel_average]
+    elif subject == MAP_SUBJECTS[2]:
+        scores = schools[second_average]
+    else:
+        scores = (schools[bel_average] + schools[second_average]) / 2
+    return scores.std()
+
+
 # @cache: the map file is read once, the first time the map is shown
 @cache
 def load_region_map():
@@ -798,31 +821,60 @@ def load_region_map():
         return json.load(file)
 
 
-def region_map(regions, borders, unit, limit):
+def colour_key(values, zero_label):
     """
-    The map: each region coloured by how far its average is from the national average
+    The colour scale for a set of numbers above and below 0: its two ends, and the labels
+    of its key, like "-13", "-7", "0 = average", "+7", "+13". The ends are the same distance
+    from 0 both ways, so 0 is always the middle colour (yellow)
     """
-    english = {feature["properties"]["region"]: feature["properties"]["name_en"] for feature in borders["features"]}
-    # The colour key's labels, like "-13", "-7", "0 = average", "+7", "+13"
+    limit = values.abs().max()
+    if pd.isna(limit) or limit < 0.01:
+        limit = 0.01
+    # Fewer decimals for big numbers (points), more for small ones (grades and their changes)
+    decimals = 0 if limit >= 5 else 1 if limit >= 0.5 else 2
     ticks = [-limit, -limit / 2, 0, limit / 2, limit]
-    decimals = 0 if unit == "points" else 1
-    tick_labels = [f"{tick:+.{decimals}f}" if tick else "0 = average" for tick in ticks]
+    labels = [f"{tick:+.{decimals}f}" if tick else zero_label for tick in ticks]
+    return limit, ticks, labels
+
+
+def signed(value, decimals=2):
+    """
+    A number with its sign, like "+2.14" or "-4.99", for the numbers written on the charts.
+    A number that rounds to zero is written without a sign: "0.00", not "-0.00"
+    """
+    text = f"{value:+.{decimals}f}"
+    return text[1:] if float(text) == 0 else text
+
+
+def year_labels(years):
+    """
+    School years written on two lines, like "2018/" above "2019", so they fit under
+    narrow columns without being slanted
+    """
+    return [year.replace("/", "/<br>") for year in years]
+
+
+def region_map(regions, borders, column, key_title, zero_label):
+    """
+    The map: each region coloured by the numbers in one column of `regions`, like its
+    distance from the national average, or how much that distance changed since last year.
+    `regions` also has a "Hover" column: the text shown when the mouse is over a region
+    """
+    limit, ticks, tick_labels = colour_key(regions[column], zero_label)
     figure = go.Figure(go.Choropleth(
         geojson = borders,
         # Match the map's regions to the data by their Bulgarian names, like "СОФИЯ-ГРАД"
         featureidkey = "properties.region",
         locations = regions["Region"],
-        z = regions["Vs Bulgaria"],
-        # The same distance both ways, so the national average is always the middle colour (yellow)
+        z = regions[column],
         zmin = -limit,
         zmax = limit,
         colorscale = MAP_COLOURS,
         marker_line_color = "#6b6b6b",
         marker_line_width = 0.6,
-        colorbar = dict(title=f"vs Bulgaria<br>({unit})", tickvals=ticks, ticktext=tick_labels, len=0.8, thickness=14),
-        customdata = list(zip([english.get(region, "") for region in regions["Region"]], regions["Score"], regions["Schools"])),
-        hovertemplate = ("<b>%{location}</b> (%{customdata[0]})<br>Average: %{customdata[1]:.2f}"
-                         "<br>vs Bulgaria: %{z:+.2f}<br>Schools: %{customdata[2]}<extra></extra>")
+        colorbar = dict(title=key_title, tickvals=ticks, ticktext=tick_labels, len=0.8, thickness=14),
+        customdata = regions["Hover"],
+        hovertemplate = "%{customdata}<extra></extra>"
     ))
     # Show only Bulgaria's regions, without the world map around them
     figure.update_geos(fitbounds="locations", visible=False, bgcolor="#fcfcfb")
@@ -830,22 +882,24 @@ def region_map(regions, borders, unit, limit):
     return figure
 
 
-def region_bars(regions, unit, limit):
+def region_bars(regions, column, axis_title):
     """
-    The same regions as a bar chart: best at the top, worst at the bottom, with each
-    region's exact difference written next to its bar, so it can be read without colours
+    The same regions as a bar chart: highest at the top, lowest at the bottom, with each
+    region's exact number written next to its bar, so it can be read without colours.
+    `regions` must already be sorted by `column`, lowest first
     """
+    limit, _, _ = colour_key(regions[column], "")
     figure = go.Figure(go.Bar(
-        x = regions["Vs Bulgaria"],
+        x = regions[column],
         y = regions["Region"],
         orientation = "h",
-        marker = dict(color=regions["Vs Bulgaria"], colorscale=MAP_COLOURS, cmin=-limit, cmax=limit,
+        marker = dict(color=regions[column], colorscale=MAP_COLOURS, cmin=-limit, cmax=limit,
                       line=dict(color="#6b6b6b", width=0.6)),
-        text = [f"{difference:+.2f}" for difference in regions["Vs Bulgaria"]],
+        text = [signed(value) for value in regions[column]],
         textposition = "outside",
         cliponaxis = False,
-        customdata = regions["Score"],
-        hovertemplate = "<b>%{y}</b><br>Average: %{customdata:.2f}<br>vs Bulgaria: %{x:+.2f}<extra></extra>"
+        customdata = regions["Hover"],
+        hovertemplate = "%{customdata}<extra></extra>"
     ))
     figure.update_layout(
         height = 660,
@@ -853,8 +907,8 @@ def region_bars(regions, unit, limit):
         margin = dict(l=10, r=10, t=40, b=40),
         paper_bgcolor = "#fcfcfb",
         plot_bgcolor = "#fcfcfb",
-        # Zero (the national average) in the middle, with room for the numbers on both sides
-        xaxis = dict(title=f"Difference from the Bulgarian average ({unit})", range=[-limit * 1.6, limit * 1.6],
+        # Zero in the middle, with room for the numbers on both sides
+        xaxis = dict(title=axis_title, range=[-limit * 1.6, limit * 1.6],
                      zeroline=True, zerolinecolor="#444444", gridcolor="#e6e6e3"),
         yaxis = dict(automargin=True),
         bargap = 0.25,
@@ -887,8 +941,12 @@ def show_map(exam_files, choice, subject):
         return f"No results for {subject} in {choice}.", None, None
     regions["Vs Bulgaria"] = regions["Score"] - national
     regions = regions.sort_values("Vs Bulgaria")
-    # The biggest distance from the average, in either direction, sets the ends of the colour scale
-    limit = max(regions["Vs Bulgaria"].abs().max(), 0.01)
+    # The text shown when the mouse is over a region or its bar
+    english = {feature["properties"]["region"]: feature["properties"]["name_en"] for feature in borders["features"]}
+    regions["Hover"] = [
+        f"<b>{region}</b> ({english.get(region, '')})<br>Average: {score:.2f}<br>vs Bulgaria: {difference:+.2f}<br>Schools: {schools}"
+        for region, score, difference, schools in zip(regions["Region"], regions["Score"], regions["Vs Bulgaria"], regions["Schools"])
+    ]
 
     worst, best = regions.iloc[0], regions.iloc[-1]
     cities = subject_score(table[table["Town"].str.startswith("ГР.")], kind, subject)
@@ -901,7 +959,212 @@ def show_map(exam_files, choice, subject):
     ]
     if cities is not None and villages is not None:
         summary.append(f"- Cities (ГР.): {cities:.2f} · villages (С.): {villages:.2f} · gap: **{cities - villages:.2f}** {unit}")
-    return "\n".join(summary), region_map(regions, borders, unit, limit), region_bars(regions, unit, limit)
+    return (
+        "\n".join(summary),
+        region_map(regions, borders, "Vs Bulgaria", f"vs Bulgaria<br>({unit})", "0 = average"),
+        region_bars(regions, "Vs Bulgaria", f"Difference from the Bulgarian average ({unit})")
+    )
+
+
+def exam_years(exam_files, choice):
+    """
+    All the files of the same exam as `choice`, oldest year first,
+    like "NVO 7th grade - 2018/2019" ... "NVO 7th grade - 2025/2026"
+    """
+    exam = choice.rsplit(" - ", 1)[0]
+    return sorted(other for other in exam_files if other.rsplit(" - ", 1)[0] == exam)
+
+
+def region_gaps(exam_files, choices, subject):
+    """
+    Each region's distance from the national average, for each of the given exams and years:
+    a table with one row per region and one column per school year. Also returns the national
+    averages and how spread out the schools' results were, year by year. Comparing with each
+    year's own national average cancels out how easy or hard that year's test was
+    """
+    scores, national, spread = {}, {}, {}
+    for choice in choices:
+        kind, table = load_choice(exam_files, choice)
+        table = schools_in_bulgaria(table)
+        year = choice.rsplit(" - ", 1)[1]
+        national[year] = subject_score(table, kind, subject)
+        spread[year] = school_spread(table, kind, subject)
+        scores[year] = {region: subject_score(schools, kind, subject) for region, schools in table.groupby("Region")}
+    national = pd.Series(national, dtype=float)
+    # Rows: regions, columns: years. Subtract each year's national average from its column
+    gaps = pd.DataFrame(scores, dtype=float).sub(national, axis=1)
+    return gaps, national, pd.Series(spread, dtype=float)
+
+
+def show_change(exam_files, choice, subject):
+    """
+    The "Change since the previous year" view: how far each region moved compared with the
+    national average, between the previous year and the chosen one
+    """
+    kind, _ = load_choice(exam_files, choice)
+    subject = subject or MAP_SUBJECTS[0]
+    unit = "points" if kind == "nvo" else "grade"
+    years = exam_years(exam_files, choice)
+    position = years.index(choice)
+    if position == 0:
+        return f"**{choice}** is the first year in the data for this exam, so there's no previous year to compare with.", None, None
+    try:
+        borders = load_region_map()
+    except OSError:
+        return f"The map file {REGION_MAP_FILE.name} is missing: it must be next to this script.", None, None
+
+    gaps, national, _ = region_gaps(exam_files, [years[position - 1], choice], subject)
+    before, now = gaps.columns
+    regions = gaps.rename(columns={before: "Before", now: "Now"}).dropna().rename_axis("Region").reset_index()
+    regions["Change"] = regions["Now"] - regions["Before"]
+    regions = regions.sort_values("Change")
+    regions["Hover"] = [
+        f"<b>{region}</b><br>Change: {change:+.2f}<br>vs Bulgaria in {now}: {after:+.2f}<br>vs Bulgaria in {before}: {earlier:+.2f}"
+        for region, change, after, earlier in zip(regions["Region"], regions["Change"], regions["Now"], regions["Before"])
+    ]
+
+    improved = regions[regions["Change"] > 0].iloc[::-1].head(3)
+    fell_behind = regions[regions["Change"] < 0].head(3)
+    summary = [
+        f"**{choice.rsplit(' - ', 1)[0]}: {before} → {now}** · {subject} · how far each region moved compared with "
+        f"the Bulgarian average",
+        "- Improved most: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in zip(improved["Region"], improved["Change"])) or "none"),
+        "- Fell behind most: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in zip(fell_behind["Region"], fell_behind["Change"])) or "none"),
+        f"- Typical movement: {regions['Change'].abs().median():.2f} {unit}. Smaller changes are often just year-to-year noise.",
+        f"- Bulgaria's own average went from {national[before]:.2f} to {national[now]:.2f} ({national[now] - national[before]:+.2f}). "
+        f"That mostly reflects how hard each year's test was, which is why regions are compared with the national average."
+    ]
+    return (
+        "\n".join(summary),
+        region_map(regions, borders, "Change", f"Change<br>({unit})", "0 = no change"),
+        region_bars(regions, "Change", f"Change vs the Bulgarian average ({unit})")
+    )
+
+
+def show_trends(exam_files, choice, subject):
+    """
+    The "Trends over the years" view: every region's distance from the national average in
+    every year of the chosen exam, and how the gap between the best and worst region changed
+    """
+    kind, _ = load_choice(exam_files, choice)
+    subject = subject or MAP_SUBJECTS[0]
+    unit = "points" if kind == "nvo" else "grade"
+    years = exam_years(exam_files, choice)
+    exam = choice.rsplit(" - ", 1)[0]
+    if len(years) < 2:
+        return f"There's only one year of {exam} in the data, so there's no trend to show yet.", None, None
+
+    gaps, _, school_spreads = region_gaps(exam_files, years, subject)
+    gaps = gaps.dropna(how="all")
+    first, last = gaps.columns[0], gaps.columns[-1]
+    # Best region at the top of the grid: Plotly draws the first row at the bottom
+    gaps = gaps.sort_values(last)
+    # The gap between the best and the worst region, year by year
+    spread = gaps.max() - gaps.min()
+    # The same gap divided by how spread out the schools' results were that year. A test that
+    # spreads students further apart widens the gap in points even if nothing really changed,
+    # so this is the fairer way to see whether the regions are drifting apart
+    relative = spread / school_spreads
+    # How much each region moved compared with the national average, from the first year to the last
+    moved = (gaps[last] - gaps[first]).dropna().sort_values()
+    caught_up = moved[moved > 0].iloc[::-1].head(3)
+    fell_behind = moved[moved < 0].head(3)
+    summary = [
+        f"**{exam}, {first} – {last}** · {subject} · each region's distance from the Bulgarian average, year by year",
+        f"- Gap between the best and worst region: {spread[first]:.2f} in {first} → **{spread[last]:.2f}** in {last} "
+        f"({spread[last] - spread[first]:+.2f} {unit})",
+        f"- The same gap compared with how spread out the schools' results were that year: "
+        f"{relative[first]:.2f} → **{relative[last]:.2f}** times the spread ({drift_words(relative[last] - relative[first])}). "
+        f"Some years' tests spread students further apart, which widens the gap by itself.",
+        f"- Caught up most since {first}: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in caught_up.items()) or "none"),
+        f"- Fell behind most since {first}: " + (", ".join(f"**{region}** {change:+.2f}" for region, change in fell_behind.items()) or "none"),
+        f"- Below the national average in every year: {int((gaps < 0).all(axis=1).sum())} regions · "
+        f"above it in every year: {int((gaps > 0).all(axis=1).sum())} regions",
+        f"- Caught up and fell behind compare only the first and the last year, so one unusual "
+        f"year at either end can change them."
+    ]
+    return "\n".join(summary), trend_heatmap(gaps, unit), gap_trend_chart(spread, relative, unit)
+
+
+def drift_words(change):
+    """
+    Put a change in the gap compared with the spread into words. Changes smaller than 0.05
+    of the spread are too small to mean anything
+    """
+    if change >= 0.05:
+        return "the regions drifted apart"
+    if change <= -0.05:
+        return "the regions came closer"
+    return "about the same"
+
+
+def trend_heatmap(gaps, unit):
+    """
+    A grid with one row per region and one column per school year: each cell is coloured by
+    the region's distance from that year's national average, with the number written in it
+    """
+    limit, ticks, tick_labels = colour_key(pd.Series(gaps.values.ravel()), "0 = average")
+    decimals = 1 if unit == "points" else 2
+    figure = go.Figure(go.Heatmap(
+        z = gaps.values,
+        x = list(gaps.columns),
+        y = list(gaps.index),
+        zmin = -limit,
+        zmax = limit,
+        colorscale = MAP_COLOURS,
+        text = [[signed(value, decimals) if pd.notna(value) else "" for value in row] for row in gaps.values],
+        texttemplate = "%{text}",
+        textfont = dict(size=10),
+        # A thin gap between the cells, so each one is easy to tell apart
+        xgap = 2,
+        ygap = 2,
+        colorbar = dict(title=f"vs Bulgaria<br>({unit})", tickvals=ticks, ticktext=tick_labels, len=0.6, thickness=14),
+        hovertemplate = "<b>%{y}</b>, %{x}<br>vs Bulgaria: %{z:+.2f}<extra></extra>"
+    ))
+    figure.update_layout(
+        height = 760,
+        # Room at the top for the years, below the chart's label
+        margin = dict(l=10, r=10, t=75, b=10),
+        paper_bgcolor = "#fcfcfb",
+        plot_bgcolor = "#fcfcfb",
+        xaxis = dict(side="top", tickvals=list(gaps.columns), ticktext=year_labels(gaps.columns), tickangle=0),
+        yaxis = dict(automargin=True)
+    )
+    return figure
+
+
+def gap_trend_chart(spread, relative, unit):
+    """
+    A line chart of the gap between the best and the worst region, year by year:
+    a rising line means the regions are drifting apart. The pop-up of each point also
+    gives the gap compared with how spread out the schools' results were that year
+    """
+    figure = go.Figure(go.Scatter(
+        x = list(spread.index),
+        y = spread.values,
+        mode = "lines+markers+text",
+        # The numbers only on the first and last year, so the line stays easy to read
+        text = [f"{value:.2f}" if position in (0, len(spread) - 1) else "" for position, value in enumerate(spread.values)],
+        textposition = "top center",
+        # The numbers may stand above the top of the chart without being cut off
+        cliponaxis = False,
+        line = dict(color="#2a78d6", width=2),
+        marker = dict(size=8, color="#2a78d6"),
+        customdata = relative.values,
+        hovertemplate = (f"%{{x}}<br>Gap: %{{y:.2f}} {unit}<br>"
+                         "= %{customdata:.2f} times the spread of the schools' results<extra></extra>")
+    ))
+    figure.update_layout(
+        height = 340,
+        margin = dict(l=10, r=20, t=50, b=40),
+        paper_bgcolor = "#fcfcfb",
+        plot_bgcolor = "#fcfcfb",
+        # From 0, with room above the highest point for its number
+        yaxis = dict(title=f"Best region minus worst ({unit})", range=[0, spread.max() * 1.2], gridcolor="#e6e6e3"),
+        xaxis = dict(tickvals=list(spread.index), ticktext=year_labels(spread.index), tickangle=0, gridcolor="#e6e6e3"),
+        showlegend = False
+    )
+    return figure
 
 
 def build_page(exam_files, regions):
@@ -925,8 +1188,31 @@ def build_page(exam_files, regions):
         # Keep the chosen town if it's still in the list
         return gr.Dropdown(choices=towns, value=current_town if current_town in towns else ALL_TOWNS)
 
-    def map_view(choice, subject):
-        return show_map(exam_files, choice, subject)
+    # The map tab has three views. This draws the chosen one, names its two charts,
+    # and puts a tick on the chosen view's button
+    def map_view(choice, subject, view):
+        if view == "change":
+            text, first_chart, second_chart = show_change(exam_files, choice, subject)
+            chart_names = ["Map: change since the previous year", "All regions, most improved at the top"]
+        elif view == "trends":
+            text, first_chart, second_chart = show_trends(exam_files, choice, subject)
+            chart_names = ["Every region, year by year (best at the top)", "Gap between the best and worst region"]
+        else:
+            text, first_chart, second_chart = show_map(exam_files, choice, subject)
+            chart_names = ["Map", "All regions, best at the top"]
+        buttons = [gr.Button(value=("✓ " if key == view else "") + name) for key, name in MAP_VIEWS.items()]
+        return [view, text, gr.Plot(value=first_chart, label=chart_names[0]),
+                gr.Plot(value=second_chart, label=chart_names[1])] + buttons
+
+    # One small function per view button
+    def difference_view(choice, subject):
+        return map_view(choice, subject, "difference")
+
+    def change_view(choice, subject):
+        return map_view(choice, subject, "change")
+
+    def trends_view(choice, subject):
+        return map_view(choice, subject, "trends")
 
     # The green button: check the portal for new files, then refresh the "Exam and school year" list.
     # It's a generator, so the page can say "Checking..." while it works
@@ -947,14 +1233,18 @@ def build_page(exam_files, regions):
             found = "No new results: the database is up to date."
         yield f"{found}  \n{database_status()}", gr.Dropdown(choices=list(exam_files), value=current_choice)
 
-    # Colour the "Check for new results" button green. White text on #1a7f37 has a contrast
-    # of 5.1:1, so it's easy to read; the darker #116329 shows when the mouse is over it
-    green_button = (
+    # The buttons' colours:
+    # - "Check for new results" is green: white text on #1a7f37 has a contrast of 5.1:1, so it's
+    #   easy to read; the darker #116329 shows when the mouse is over it
+    # - the other buttons are light grey: dark text on #e9e9e7 has a contrast of 13.6:1
+    button_colours = (
         "#check-button { background: #1a7f37 !important; color: #ffffff !important; border-color: #1a7f37 !important; }"
         "#check-button:hover { background: #116329 !important; border-color: #116329 !important; }"
+        ".grey-button { background: #e9e9e7 !important; color: #1f1f1f !important; border: 1px solid #8f8f8b !important; }"
+        ".grey-button:hover { background: #dcdcd9 !important; }"
     )
 
-    with gr.Blocks(title="Bulgarian school exam results", css=green_button) as page:
+    with gr.Blocks(title="Bulgarian school exam results", css=button_colours) as page:
         gr.Markdown(
             "# Bulgarian school exam results\n"
             "Official results by school from the Ministry of Education and Science (МОН), "
@@ -974,9 +1264,12 @@ def build_page(exam_files, regions):
             search = gr.Textbox(label="School, town or municipality contains", placeholder="for example: Математическа")
             rank_by = gr.Radio(RANK_BY, label="Rank schools by", value=RANK_BY[0])
         with gr.Row():
-            show_button = gr.Button("Show results", variant="primary")
-            overview_button = gr.Button(f"Write AI overview of the top {TOP} ({MODEL})")
+            show_button = gr.Button("Show results", elem_classes="grey-button")
+            overview_button = gr.Button(f"Write AI overview of the top {TOP} ({MODEL})", elem_classes="grey-button")
 
+        # Which view the map tab shows: "difference", "change" or "trends". It's not drawn on the page:
+        # gr.State only remembers a value for each visitor
+        map_view_state = gr.State("difference")
         with gr.Tabs() as tabs:
             with gr.Tab("Schools", id="schools"):
                 summary = gr.Markdown()
@@ -994,10 +1287,15 @@ def build_page(exam_files, regions):
                 overview_text = gr.Markdown()
             with gr.Tab("Map of the regions", id="map") as map_tab:
                 gr.Markdown(
-                    "The 28 regions for the chosen exam and year, coloured by how far each one is from the "
-                    "Bulgarian average: **dark red** = far below, **yellow** = about average, **light green** = "
-                    "far above. Darker always means lower. The map always shows the whole country."
+                    "The 28 regions for the chosen exam, always compared with the **Bulgarian average**, which "
+                    "cancels out how easy or hard each year's test was. **Dark red** = far below (or fell behind), "
+                    "**yellow** = about average (or no change), **light green** = far above (or improved). "
+                    "Darker always means lower. The map always shows the whole country."
                 )
+                with gr.Row():
+                    difference_button = gr.Button("✓ " + MAP_VIEWS["difference"], elem_classes="grey-button")
+                    change_button = gr.Button(MAP_VIEWS["change"], elem_classes="grey-button")
+                    trends_button = gr.Button(MAP_VIEWS["trends"], elem_classes="grey-button")
                 map_subject = gr.Radio(MAP_SUBJECTS, label="Colour by", value=MAP_SUBJECTS[0])
                 map_summary = gr.Markdown()
                 with gr.Row():
@@ -1031,11 +1329,14 @@ def build_page(exam_files, regions):
         # Show the default results as soon as the page opens
         page.load(show, filters, shown, api_name=False)
         # The map is drawn when you open its tab (a chart drawn in a hidden tab can get the
-        # wrong size), and again when you change the exam or what it's coloured by
-        map_shown = [map_summary, map_plot, bars_plot]
-        map_tab.select(map_view, [exam, map_subject], map_shown, api_name=False)
-        exam.change(map_view, [exam, map_subject], map_shown, api_name=False)
-        map_subject.input(map_view, [exam, map_subject], map_shown, api_name="map")
+        # wrong size), and again when you change the exam, what it's coloured by, or the view
+        map_shown = [map_view_state, map_summary, map_plot, bars_plot, difference_button, change_button, trends_button]
+        map_tab.select(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
+        exam.change(map_view, [exam, map_subject, map_view_state], map_shown, api_name=False)
+        map_subject.input(map_view, [exam, map_subject, map_view_state], map_shown, api_name="map")
+        difference_button.click(difference_view, [exam, map_subject], map_shown, api_name="map_difference")
+        change_button.click(change_view, [exam, map_subject], map_shown, api_name="map_change")
+        trends_button.click(trends_view, [exam, map_subject], map_shown, api_name="map_trends")
         # The green button updates the database line and the list of exams and years
         check_button.click(check_for_new_results, [exam], [database_info, exam], api_name="check")
     return page

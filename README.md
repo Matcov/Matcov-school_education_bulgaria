@@ -1,8 +1,8 @@
 # Bulgarian school exam results
 
 A web app that shows the **official exam results of every school in Bulgaria**, compares towns
-and regions, and draws a **map of the inequality between regions**. The data is published by the
-Ministry of Education and Science (МОН).
+and regions, draws a **map of the inequality between regions**, and shows **how that inequality
+changes from year to year**. The data is published by the Ministry of Education and Science (МОН).
 - **The app keeps a copy in a local database** that comes with this repository, so it starts in
   seconds and works without internet.
 - **A green "Check for new results" button** downloads new results when the ministry publishes
@@ -13,6 +13,8 @@ beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgaria
 [Russian](explanation_russian.md).
 
 ![The map of the regions: 28 regions coloured from dark red (far below the national average) to light green (far above), next to a bar chart of all regions](screenshot_map.png)
+
+![Trends over the years: a grid of the 28 regions by school year, coloured by each region's distance from the national average, next to a line chart of the gap between the best and the worst region](screenshot_trends.png)
 
 ## What it shows
 
@@ -34,13 +36,27 @@ beginners in [English](explanation_english.md), [Bulgarian](explanation_bulgaria
     only words it.
   - If the AI isn't available, the program writes a plainer overview itself, from the same
     numbers.
-- **Map of the regions:** the 28 regions coloured by how far their results are from the national
-  average, from **dark red** (far below) through **yellow** (about average) to **light green**
-  (far above).
-  - The colours also get lighter as results get better, so the map still reads for colour-blind
-    readers and in black and white.
-  - Next to the map: a bar chart with every region's exact number, and the biggest gaps: best vs
-    worst region, and cities vs villages.
+- **Map of the regions:** the 28 regions, always compared with the **national average**. That
+  cancels out how easy or hard each year's test was, so years can be compared fairly. Three
+  buttons switch between three views:
+  - **Difference from Bulgaria:** a map with each region coloured by how far its results are from
+    the national average, from **dark red** (far below) through **yellow** (about average) to
+    **light green** (far above). Next to it: a bar chart with every region's exact number, and the
+    biggest gaps: best vs worst region, and cities vs villages.
+  - **Change since the previous year:** the same map and bar chart, coloured by how much each
+    region moved compared with the national average since the year before. Red means it fell
+    behind, green means it caught up. The summary names the regions that moved most, and gives the
+    typical movement, because small changes are often just noise.
+  - **Trends over the years:** a grid with one row per region and one column per year, showing
+    each region's distance from the national average in every year. Next to it, a line chart of the
+    gap between the best and the worst region: for the 7th grade it grew from 20.58 points in
+    2018/19 to 26.79 in 2025/26.
+    - Some years' tests spread students further apart, which widens the gap by itself. So the
+      summary also compares the gap with how spread out the schools' results were. By that
+      measure the 7th grade gap grew by 12%, not 30%, and the 10th grade regions actually came a
+      little closer.
+  - In all three views the colours also get lighter as results get better, so they still read for
+    colour-blind readers and in black and white.
 
 **At the top of the page,** a line shows how many results files are in the database and when it
 was last checked. Next to it, the green **"Check for new results"** button asks the government's
@@ -95,6 +111,7 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 | [alex_school_results.py](alex_school_results.py) | The app |
 | [school_results.db](school_results.db) | The database with every results file: the app reads only this. You can open it with any SQLite tool, such as the free [DB Browser for SQLite](https://sqlitebrowser.org) |
 | [bulgaria_regions.geojson](bulgaria_regions.geojson) | The borders of the 28 regions, for the map (Natural Earth, Bulgaria only) |
+| [screenshot_map.png](screenshot_map.png), [screenshot_trends.png](screenshot_trends.png) | The pictures of the map tab at the top of this page |
 | [requirements.txt](requirements.txt) | The Python packages the app needs |
 | [schools/](schools/) | A snapshot from 17 November 2026: one CSV file per school (2,379 schools), plus the index [_all_schools.csv](schools/_all_schools.csv). The database is the copy that gets updated |
 | [info.md](info.md) | Research notes: where the data is, how the portal's API works, the data's quirks, and the findings |
@@ -105,6 +122,10 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
 
 - **Differences in results are not a verdict on schools.** Results also depend on family income,
   town or village, and which students sit the exam.
+- **Comparing years:** each year's test is different, so the app never compares raw averages
+  across years. It compares each region with that year's national average instead. A change of
+  a few tenths is often just noise, and the summary says how big a typical change is. For trends,
+  it also compares the gap between regions with how spread out that year's results were.
 - **Not covered:** elective matura exams, the August–September retake session, and files before
   2018/19, which use different layouts.
 - **The data is cleaned:** the ministry's files differ from year to year (column order, codes
@@ -115,3 +136,5 @@ file is ever missing, the app rebuilds it the first time it starts, which takes 
   AI isn't available.
 - **The database is a copy.** Results the ministry publishes later appear only after you click
   **Check for new results**.
+- **If the page stops reacting, close other tabs of the app.** A browser allows only 6 connections
+  to one server, and every open tab of the app keeps some of them busy.

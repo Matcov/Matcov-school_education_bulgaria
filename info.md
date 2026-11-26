@@ -17,6 +17,11 @@ Data collected on 17 November 2026.
 - **A map of the 28 regions shows strong inequality:** in the latest year, only 4 to 8 regions are
   above the national average, depending on the exam, and in the 4th and 7th grade villages score
   17–19 points below cities.
+- **Over the years, the 7th grade regions drifted apart, but less than the points suggest:** the gap
+  between the best and the worst region grew from 20.58 points in 2018/19 to 26.79 in 2025/26
+  (+30%). The tests also spread students further apart, though. Compared with that spread, the gap
+  grew by 12%, all of it by 2021/22, and has been flat since. In every exam, 20 of the 28 regions
+  were below the national average in every year.
 
 ## Where the data is, and where it isn't
 
@@ -209,9 +214,11 @@ Top 3 schools by Bulgarian score:
    - **Minimum sizes,** so tiny villages and schools don't top the lists: 100 students per town
      nationally, 30 per town inside one region (with 100, most regions had only 1–2 ranked towns),
      and 10 per school.
-   - **"Map of the regions" (third tab):** the 28 regions coloured by their distance from the national
-     average, a bar chart with every region's exact number, and the biggest gaps. See the section
-     below.
+   - **"Map of the regions" (third tab):** three buttons switch between three views of the 28
+     regions, always compared with the national average: the difference from it, the change since
+     the previous year, and the trends over the years. See the section below.
+   - **The buttons are light grey** (dark text on `#e9e9e7`, a contrast of 13.6:1), except the green
+     **Check for new results**, which stands out.
    - **Speed:** reading one exam and year from the database takes about 20 milliseconds.
 
 Run it with `uv run education_bulgaria/alex_school_results.py` in this project, or with
@@ -340,13 +347,94 @@ the hover pop-ups.
   the schools: results also depend on family income, town or village, and which students sit the
   exam.
 
-### How the map was tested
+### Comparing years: change and trends
 
-- **All 25 files × 3 subjects (75 maps):** the data matches the borders and the colour range is
-  centred on the average.
+**Why every view compares with the national average:** each year's test is different. The 7th grade
+national average went from 43.53 points (2018/19) up to 49.33 (2024/25) and down to 46.87 (2025/26).
+That mostly shows how hard each test was, not schools getting better or worse. So the app subtracts
+each year's national average from each region's average, and compares those distances between years.
+
+**The three views of the map tab:**
+- **Difference from Bulgaria:** the map and bar chart described above.
+- **Change since the previous year:** the same map and bar chart, coloured by how much each region's
+  distance from the national average changed since the year before. The first year of each exam has
+  no previous year, so the page says so instead.
+- **Trends over the years:** a grid with one row per region and one column per year, each cell
+  showing that region's distance from the national average, and a line chart of the gap between the
+  best and the worst region. The summary also gives that gap compared with how spread out the
+  schools' results were (see "Measuring the gap fairly" below).
+
+**Change since the previous year (latest year, both subjects):**
+
+| Exam | Improved most | Fell behind most | Typical movement |
+|---|---|---|---|
+| НВО 4th grade | ВРАЦА +2.85, КЮСТЕНДИЛ +2.76 | ЯМБОЛ −2.29, ВЕЛИКО ТЪРНОВО −2.24 | 0.71 points |
+| НВО 7th grade | ДОБРИЧ +2.14, ПЕРНИК +1.76 | ЯМБОЛ −4.99, ПЛЕВЕН −2.04 | 0.98 points |
+| НВО 10th grade | ЯМБОЛ +2.58, КЪРДЖАЛИ +2.08 | ШУМЕН −2.61, СЛИВЕН −2.34 | 0.85 points |
+| ДЗИ (matura) | КЪРДЖАЛИ +0.15, ЛОВЕЧ +0.09 | ГАБРОВО −0.15, ВИДИН −0.11 | 0.03 of a grade |
+
+- **"Typical movement"** is the median of how far the 28 regions moved: half moved less, half moved
+  more. Most regions move less than a point a year, so a change of that size is often just noise.
+- **One year is not a trend:** ЯМБОЛ fell behind most in the 7th grade (−4.99) but improved most in
+  the 10th grade (+2.58).
+
+**Trends over the years (both subjects):**
+
+| Exam | Years | Gap between the best and worst region | Gap ÷ spread of the schools' results | Caught up most since the first year | Fell behind most since the first year |
+|---|---|---|---|---|---|
+| НВО 4th grade | 2020/21 – 2025/26 | 22.01 → 23.01 points | 1.32 → 1.41: drifted apart | ЛОВЕЧ +3.36 | РАЗГРАД −7.28 |
+| НВО 7th grade | 2018/19 – 2025/26 | 20.58 → **26.79** points | 1.37 → **1.53**: drifted apart | СОФИЯ-ГРАД +2.30 | КЪРДЖАЛИ −6.55 |
+| НВО 10th grade | 2020/21 – 2025/26 | 15.62 → 16.69 points | 1.28 → 1.21: came closer | ПЕРНИК +2.08 | СМОЛЯН −4.50 |
+| ДЗИ (matura) | 2021/22 – 2025/26 | 0.74 → 0.64 of a grade | 1.02 → 0.87: came closer | КЪРДЖАЛИ +0.31 | ПАЗАРДЖИК −0.17 |
+
+**Measuring the gap fairly.** Comparing with the national average cancels out how *easy* each test
+was, but not how much it *spread the students apart*. A test that spreads students further apart
+widens the gap between regions too, even if nothing really changed. So the app also divides the gap
+by the **spread of the schools' results** that year (their standard deviation: roughly, how far a
+typical school is from the average). The summary shows both numbers, and the line chart's pop-ups
+show the second one.
+
+7th grade, both subjects, year by year:
+
+| | 18/19 | 19/20 | 20/21 | 21/22 | 22/23 | 23/24 | 24/25 | 25/26 |
+|---|---|---|---|---|---|---|---|---|
+| Gap between regions (points) | 20.58 | 21.95 | 23.55 | 24.65 | 23.78 | 23.79 | 25.56 | 26.79 |
+| Spread of the schools' results (points) | 15.01 | 15.58 | 16.15 | 16.04 | 15.56 | 15.95 | 16.76 | 17.55 |
+| Gap ÷ spread | 1.37 | 1.41 | 1.46 | 1.54 | 1.53 | 1.49 | 1.53 | 1.53 |
+
+- **In the 7th grade the regions did drift apart, but less than the points suggest:** +30% in points,
+  +12% compared with the spread. And it all happened by 2021/22. Since then, the growth in points
+  comes from tests that spread students further apart, not from the regions. The two regions that
+  pulled ahead most, СОФИЯ-ГРАД and ВАРНА, were already above the national average.
+- **The 10th grade shows why this matters:** its gap grew by 1.07 points, but compared with the
+  spread, the regions came a little closer.
+- **In every exam, 20 of the 28 regions were below the national average in every year.**
+- **The matura's gap shrank on both measures,** mostly because КЪРДЖАЛИ caught up.
+- **"Caught up" and "fell behind" compare only the first and the last year,** so one unusual year at
+  either end can change them. A typical region moves about 1 point a year, so changes of 2 to 3
+  points over 6 years are borderline. The app's summary says so too.
+- **The gap uses only the best and the worst region** (usually СОФИЯ-ГРАД against СЛИВЕН or
+  РАЗГРАД). The grid shows what happens to the 26 regions in between.
+
+### How the map and its views were tested
+
+- **All 25 files × 3 subjects × 3 views (225 drawings)** work. The first year of each exam shows its
+  message instead of a map.
+- **The same 28 regions appear in every year of every exam,** so no region gets lost to a spelling
+  difference between years.
+- **The numbers were checked against a separate calculation.** The only difference was in the check
+  itself: the 7th grade's typical movement is 0.98, not 1.04. The median of 28 numbers is the average
+  of the 14th and the 15th (0.91 and 1.04), and the check had taken only the 15th.
 - **The real app was photographed in a background browser,** with the map tab clicked. That's how
   three layout problems were found and fixed: a region name hidden behind the chart's label, numbers
   touching the region names, and a colour key without signs.
+- **The three views were clicked through in the real page,** also with another exam chosen. That
+  found 4 more layout problems, now fixed: an axis title cut off, slanted years hidden behind the
+  chart's label, "-0.0" written in the grid, and the line chart's last number cut off at the top.
+- **Lesson learned about browsers:** at first, the test browser reopened old tabs of the app from
+  earlier tests. Every open tab of the app keeps connections to it, and a browser allows only 6
+  connections to one server, so the new page's clicks waited forever. A fresh browser profile for
+  every test fixed it. The same can happen with many tabs of the app open: close the extra tabs.
 
 ## Not covered, and ideas
 
