@@ -2,13 +2,14 @@
 
 Это руководство для тех, кто **только начинает изучать Python**. Оно простыми словами объясняет
 каждую функцию (`def`) в [alex_school_results.py](../alex_school_results.py), а затем показывает, как
-они работают вместе.
+они работают вместе. Оно также объясняет [translations.py](../translations.py) — файл, в котором
+лежат все тексты страницы на 4 языках.
 
 Как читать:
 1. Прочитайте разделы **«Что делает программа»** и **«Слова, которые вам встретятся»**.
 2. Посмотрите на **схему** в разделе 4.
 3. Прочитайте описания функций. У каждой есть ссылка на её строку в коде (номера строк указаны на
-   25 ноября 2026 г.).
+   26 ноября 2026 г.).
 
 ---
 
@@ -32,6 +33,11 @@
    выше), а рядом — столбчатая диаграмма с точными числами.
 7. Три кнопки на вкладке с картой переключают три **вида** (view): это отличие от среднего по
    стране, **изменение по сравнению с прошлым годом** и **тенденции за несколько лет**.
+8. Страница есть на **4 языках**: болгарском, английском, русском и румынском. Четыре синие кнопки
+   рядом с заголовком (EN, BG, RU, RO) переключают их. Болгарская страница открывается по простому
+   адресу (http://127.0.0.1:7860), а остальные — по адресам `/en`, `/ru` и `/ro`. Все тексты
+   страницы лежат в файле `translations.py`. Названия школ, населённых пунктов и областей остаются на
+   кириллице, как в данных, а в числах на всех языках остаётся десятичная точка.
 
 **Экзамены:**
 - **НВО** (национальное внешнее оценивание) в 4, 7 и 10 классе: баллы от 0 до 100 по болгарскому
@@ -67,13 +73,20 @@
 | **константа** | Настройка, написанная ЗАГЛАВНЫМИ буквами в начале файла, например `TOP = 5`. Она не меняется, пока программа работает. |
 | **состояние** (`gr.State`) | Значение, которое Gradio **запоминает** для каждого посетителя страницы, но не показывает. Здесь: какой из трёх видов карты вы выбрали. |
 | **медиана** | Значение посередине: половина чисел меньше него, половина — больше. Если чисел чётное количество, это среднее двух средних чисел. В отличие от обычного среднего, одно крайнее число почти не сдвигает медиану. |
+| **импорт** (`import`) | Берёт имена из другого файла Python. `from translations import translate` позволяет этому файлу использовать функцию `translate()`, написанную в `translations.py`. |
+| **ключ перевода** | Имя одного текста в `translations.py`, например `"check_button"`. Код просит текст по его ключу и языку: `translate("check_button", "ru")` даёт «Проверить новые результаты». |
+| **заполнитель** `{name}` | Пропуск в тексте, в фигурных скобках, куда подставляется значение: `"Число школ: {count}"` превращается в «Число школ: 1 738». |
+| **код языка** | Две буквы для языка: `en` английский, `bg` болгарский, `ru` русский, `ro` румынский. Каждая функция страницы получает его в параметре `language`. |
+| **пара (подпись, значение)** | Элемент списка из двух частей: **подпись** (label), которую видите вы, и **значение** (value), которое получает код. На русской странице список показывает «НВО 7 класс - 2025/2026», но код всё равно получает «NVO 7th grade - 2025/2026». Так код работает одинаково на любом языке. |
+| **маршрут** (route) | Ещё одна страница приложения Gradio, по своему адресу. `/en` — это маршрут английской страницы. |
 
 ---
 
-## 3. Настройки в начале файла (строки 57–199)
+## 3. Настройки в начале файла (строки 60–204)
 
 | Настройка | Что это |
 |---|---|
+| `from translations import …` | Берёт из `translations.py` настройки языков и 3 функции для текстов (см. Группу 8). Этот файл должен лежать рядом со скриптом |
 | `MON_OPEN_DATA_PAGE` | Страница министерства, которая сообщает, где находятся данные |
 | `PORTAL_API` | Адрес API национального портала открытых данных (data.egov.bg) |
 | `KNOWN_MINISTRY_ID` | Идентификатор (ID) министерства на портале — на случай, если mon.bg не работает |
@@ -81,7 +94,8 @@
 | `MODEL`, `THINK` | Модель ИИ (`gemma4`) и «не думай вслух», чтобы было быстрее |
 | `EXAMS` | Четыре экзамена, их вид (`"nvo"` или `"dzi"`) и название их набора данных на портале |
 | `RESULT_COLUMNS` | Названия четырёх столбцов с результатами для каждого вида экзамена |
-| `ALL_REGIONS`, `ALL_TOWNS`, `ABROAD`, `RANK_BY` | Постоянные тексты, которые используются на странице |
+| `ALL_REGIONS`, `ALL_TOWNS`, `RANK_BY` | Значения, которые код использует для «All regions», «All towns» и двух способов составить рейтинг школ. На всех языках они остаются английскими; страница показывает их в переводе |
+| `ABROAD` | `"ЧУЖБИНА"` — «область» болгарских школ в других странах |
 | `TOP` | Сколько населённых пунктов и школ показывает обзор ИИ (5) |
 | `MIN_TOWN_STUDENTS`, `MIN_TOWN_STUDENTS_IN_REGION`, `MIN_SCHOOL_STUDENTS` | Минимальное число учеников (100, 30, 10), чтобы попасть в рейтинг, — чтобы крошечные сёла не выигрывали |
 | `BOM` | Невидимый символ, с которого начинаются некоторые файлы |
@@ -89,11 +103,10 @@
 | `DATABASE_TABLES` | Три таблицы базы, написанные на SQL: `files`, `results` и `checks`. Они создаются, когда файл открывается впервые |
 | `DATABASE_COLUMNS` | Названия столбцов с результатами в базе (`region`, `school`, `bel_average`…) |
 | `REGION_MAP_FILE` | Где лежат границы областей для карты: файл `bulgaria_regions.geojson` рядом со скриптом |
-| `MAP_SUBJECTS` | По чему можно окрасить карту: оба предмета, болгарский язык или математика / второй экзамен |
+| `MAP_SUBJECTS` | По чему можно окрасить карту: оба предмета, болгарский язык или математика / второй экзамен. Они на английском, как и `RANK_BY`: страница показывает их в переводе |
 | `MAP_COLOURS` | Цвета карты — от тёмно-красного (намного ниже среднего) до светло-зелёного (намного выше). Кроме того, они становятся всё светлее, так что темнее всегда значит слабее |
-| `MAP_VIEWS` | Три вида вкладки с картой и надпись на кнопке каждого: `"difference"` → «Difference from Bulgaria» (отличие от Болгарии), `"change"` → «Change since the previous year» (изменение с прошлого года), `"trends"` → «Trends over the years» (тенденции за несколько лет) |
-| `MAP_NOTE` | Строка под картой: цвета показывают различия в результатах, а не качество школ |
-| `overview_system_prompt` | Правила, которые ИИ должен соблюдать, когда пишет обзор |
+| `MAP_VIEWS` | Названия трёх видов вкладки с картой: `"difference"`, `"change"` и `"trends"`. Надпись на кнопке каждого — это текст `"view_<название>"` в `translations.py`, например `"view_change"` → «Изменение за год» |
+| `overview_system_prompt` | Правила, которые ИИ должен соблюдать, когда пишет обзор. В них три заполнителя, которые заполняет `overview_messages()`: `{language}` (язык, на котором писать) и `{towns_heading}`, `{schools_heading}` (два заголовка, в переводе) |
 
 ---
 
@@ -103,6 +116,9 @@
 - **Стрелка** `A → B` означает «A **вызывает** B».
 - **Пунктирная стрелка** означает «создаёт» или «затем Gradio выполняет».
 - **Цилиндр** — это что-то вне кода: сайт, файл или ИИ на вашем компьютере.
+- Почти каждая функция, которая пишет текст на странице, вызывает `translate()` (группа 8). Чтобы
+  схема оставалась читаемой, стрелка к ней есть только у маленьких помощников, сделанных для
+  переводов.
 
 > Схема отображается как картинка **на GitHub**. В VS Code установите расширение
 > *«Markdown Preview Mermaid Support»* или прочитайте текстовую версию под схемой.
@@ -115,6 +131,11 @@ flowchart TD
         n_tidy["tidy()"]
         n_tidy_town["tidy_town()"]
         n_to_number["to_number()"]
+        n_exam_name["exam_name()"]
+        n_choice_label["choice_label()"]
+        n_choice_list["choice_list()"]
+        n_subject_name["subject_name()"]
+        n_shown_table["shown_table()"]
         n_weighted["weighted_average()"]
         n_town_label["town_label()"]
         n_split_label["split_town_label()"]
@@ -165,6 +186,8 @@ flowchart TD
         n_load_region_map["load_region_map()<br/>с памятью: @cache"]
         n_region_map["region_map()"]
         n_region_bars["region_bars()"]
+        n_unit_word["unit_word()"]
+        n_region_list["region_list()"]
         n_trend_heatmap["trend_heatmap()"]
         n_gap_trend_chart["gap_trend_chart()"]
         n_colour_key["colour_key()"]
@@ -172,8 +195,11 @@ flowchart TD
         n_year_labels["year_labels()"]
     end
 
-    subgraph g_page ["7 - Веб-страница, которую создаёт build_page()"]
-        n_build_page["build_page()"]
+    subgraph g_page ["7 - Веб-страница, которую build_language_page() создаёт для каждого языка"]
+        n_build_app["build_app()"]
+        n_build_language_page["build_language_page()"]
+        n_language_buttons["language_buttons()"]
+        n_api["api()"]
         n_show["show()"]
         n_refresh["refresh_towns()"]
         n_tab["show_schools_tab()"]
@@ -185,6 +211,12 @@ flowchart TD
         n_check["check_for_new_results()"]
     end
 
+    subgraph g_texts ["8 - Тексты на 4 языках, в translations.py"]
+        n_translate["translate()"]
+        n_whole_number["whole_number()"]
+        n_missing["missing_translations()"]
+    end
+
     MON[("mon.bg")]
     PORTAL[("data.egov.bg")]
     DBFILE[("school_results.db")]
@@ -193,10 +225,11 @@ flowchart TD
     YOU(["Вы, в браузере"])
 
     %% Запуск программы
+    n_main --> n_missing
     n_main --> n_stored
     n_main -->|только если база пуста| n_update
     n_main --> n_read
-    n_main --> n_build_page
+    n_main --> n_build_app
     n_main --> n_ollama_problem
 
     %% База данных
@@ -225,17 +258,22 @@ flowchart TD
     n_call_portal --> PORTAL
 
     %% Веб-страница
-    n_build_page --> n_town_choices
-    n_build_page --> n_status
-    n_build_page -.->|создаёт| n_show
-    n_build_page -.->|создаёт| n_refresh
-    n_build_page -.->|создаёт| n_tab
-    n_build_page -.->|создаёт| n_overview
-    n_build_page -.->|создаёт| n_map_view
-    n_build_page -.->|создаёт| n_difference_view
-    n_build_page -.->|создаёт| n_change_view
-    n_build_page -.->|создаёт| n_trends_view
-    n_build_page -.->|создаёт| n_check
+    n_build_app -->|по разу для каждого из 4 языков| n_build_language_page
+    n_build_language_page --> n_language_buttons
+    n_build_language_page --> n_status
+    n_build_language_page --> n_choice_list
+    n_build_language_page --> n_town_choices
+    n_build_language_page --> n_subject_name
+    n_build_language_page -.->|создаёт| n_api
+    n_build_language_page -.->|создаёт| n_show
+    n_build_language_page -.->|создаёт| n_refresh
+    n_build_language_page -.->|создаёт| n_tab
+    n_build_language_page -.->|создаёт| n_overview
+    n_build_language_page -.->|создаёт| n_map_view
+    n_build_language_page -.->|создаёт| n_difference_view
+    n_build_language_page -.->|создаёт| n_change_view
+    n_build_language_page -.->|создаёт| n_trends_view
+    n_build_language_page -.->|создаёт| n_check
     YOU -->|открытие страницы, новый пункт или рейтинг| n_show
     YOU -->|новый экзамен или область| n_refresh
     YOU -->|Show results или Enter| n_tab
@@ -250,6 +288,7 @@ flowchart TD
     n_check --> n_update
     n_check --> n_stored
     n_check --> n_status
+    n_check --> n_choice_list
 
     %% Выбор и рейтинг
     n_show --> n_show_results
@@ -260,7 +299,19 @@ flowchart TD
     n_show_results --> n_split_label
     n_show_results --> n_weighted
     n_show_results --> n_rank_towns
+    n_show_results --> n_choice_label
+    n_show_results --> n_whole_number
+    n_show_results --> n_shown_table
     n_rank_towns --> n_weighted
+
+    %% Тексты на 4 языках
+    n_choice_list --> n_choice_label
+    n_choice_label --> n_exam_name
+    n_exam_name --> n_translate
+    n_subject_name --> n_translate
+    n_shown_table --> n_translate
+    n_unit_word --> n_translate
+    n_region_list --> n_translate
 
     %% Обзор от ИИ
     n_overview --> n_write_overview
@@ -271,6 +322,7 @@ flowchart TD
     n_write_overview --> n_ollama_problem
     n_write_overview --> n_overview_messages
     n_write_overview -->|без ИИ| n_template
+    n_write_overview --> n_shown_table
     n_write_overview --> OLLAMA
     n_ollama_problem --> OLLAMA
 
@@ -287,18 +339,30 @@ flowchart TD
     n_show_map --> n_subject_score
     n_show_map --> n_region_map
     n_show_map --> n_region_bars
+    n_show_map --> n_unit_word
+    n_show_map --> n_subject_name
+    n_show_map --> n_choice_label
     n_show_change --> n_load_choice
     n_show_change --> n_exam_years
     n_show_change --> n_load_region_map
     n_show_change --> n_region_gaps
     n_show_change --> n_region_map
     n_show_change --> n_region_bars
+    n_show_change --> n_unit_word
+    n_show_change --> n_region_list
+    n_show_change --> n_exam_name
+    n_show_change --> n_subject_name
+    n_show_change --> n_choice_label
     n_show_trends --> n_load_choice
     n_show_trends --> n_exam_years
     n_show_trends --> n_region_gaps
     n_show_trends --> n_trend_heatmap
     n_show_trends --> n_gap_trend_chart
     n_show_trends --> n_drift_words
+    n_show_trends --> n_unit_word
+    n_show_trends --> n_region_list
+    n_show_trends --> n_exam_name
+    n_show_trends --> n_subject_name
     n_region_gaps --> n_load_choice
     n_region_gaps --> n_schools_in_bulgaria
     n_region_gaps --> n_subject_score
@@ -309,7 +373,9 @@ flowchart TD
     n_trend_heatmap --> n_colour_key
     n_trend_heatmap --> n_signed
     n_trend_heatmap --> n_year_labels
+    n_trend_heatmap --> n_unit_word
     n_gap_trend_chart --> n_year_labels
+    n_gap_trend_chart --> n_unit_word
     n_subject_score --> n_weighted
     n_load_region_map --> MAPFILE
 ```
@@ -320,19 +386,25 @@ flowchart TD
 
 ```text
 main()
+ ├─ missing_translations()                    есть ли каждый текст на всех 4 языках? Если нет: стоп
  ├─ stored_files() → open_database()          список файлов в school_results.db
  ├─ update_database()                         ТОЛЬКО если база пуста: см. Путь Д
  ├─ read_results() → open_database()          первый файл, только чтобы получить список областей
- ├─ build_page()                              строит веб-страницу
- │    ├─ database_status() → open_database()  строка «Data: 25 results files...»
- │    └─ town_choices()                       заполняет список населённых пунктов
- │         ├─ load_choice() → read_results()
- │         └─ town_label()
- ├─ ollama_problem()                          готов ли ИИ? (только предупреждение)
- └─ page.launch()                             открывает браузер
+ ├─ build_app()                               строит всё приложение
+ │    └─ build_language_page()                4 раза: BG на «/», затем EN, RU, RO на /en, /ru, /ro
+ │         ├─ language_buttons()              4 синие кнопки рядом с заголовком
+ │         ├─ database_status() → open_database()  строка «Данные: файлов с результатами...»
+ │         ├─ choice_list() → choice_label() → exam_name()   список «Экзамен и учебный год»
+ │         ├─ town_choices()                  заполняет список населённых пунктов
+ │         │    ├─ load_choice() → read_results()
+ │         │    └─ town_label()
+ │         └─ subject_name()                  переведённые подписи «Рейтинг школ по» и «Цвет по»
+ ├─ ollama_problem()                          готов ли ИИ? (только предупреждение, на английском)
+ └─ page.launch()                             открывает браузер, на болгарской странице
 ```
 
-Здесь интернет не нужен: всё берётся из базы данных.
+Здесь интернет не нужен: всё берётся из базы данных. Каждая функция выше, которая показывает
+текст, получает язык страницы и просит свои тексты у `translate()`.
 
 **Путь Б: вкладка «Schools»** (страница открывается, вы что-то меняете или нажимаете «Show results»)
 
@@ -341,11 +413,13 @@ show_schools_tab()                 только для «Show results» и Enter
 refresh_towns()                    только при смене экзамена или области: новый список пунктов
  └─ town_choices() → load_choice() → read_results(), town_label()
 show()
- └─ show_results()                 сводка + таблица
+ └─ show_results()                 сводка + таблица, на языке страницы
       ├─ load_choice() → read_results()     (около 20 миллисекунд, из базы данных)
       ├─ split_town_label()                 (если выбран населённый пункт)
+      ├─ choice_label(), whole_number()     название экзамена и «Число школ: 1 738» в сводке
       ├─ weighted_average()                 (средние значения в сводке)
-      └─ rank_towns() → weighted_average()  (место населённого пункта в рейтинге)
+      ├─ rank_towns() → weighted_average()  (место населённого пункта в рейтинге)
+      └─ shown_table()                      названия столбцов таблицы, в переводе
 ```
 
 **Путь В: вы нажимаете «Write AI overview»**
@@ -358,10 +432,11 @@ overview()
       ├─ rank_towns() → weighted_average()   5 лучших населённых пунктов
       ├─ rank_schools()                      5 лучших школ
       ├─ weighted_average()                  среднее по району и «Vs area average»
+      ├─ shown_table()                       названия столбцов двух таблиц, в переводе
       ├─ ollama_problem()                    готов ли Ollama?
       ├─ template_overview()                 если нет или если ИИ сломался: пишет программа
-      ├─ overview_messages()                 инструкции + факты в JSON
-      └─ ollama.chat()                       gemma4 пишет, слово за словом
+      ├─ overview_messages()                 инструкции + факты в JSON (на английском)
+      └─ ollama.chat()                       gemma4 пишет, слово за словом, на языке страницы
 ```
 
 **Путь Г: вы открываете вкладку «Map and trends of the regions»** (или нажимаете одну из трёх её кнопок,
@@ -377,11 +452,14 @@ map_view()
  │    ├─ load_choice() → read_results()
  │    ├─ schools_in_bulgaria()                  убирает школы за границей
  │    ├─ load_region_map()                      читает bulgaria_regions.geojson (только в первый раз)
+ │    ├─ unit_word()                            «баллов» или «оценка», на языке страницы
  │    ├─ subject_score() → weighted_average()   Болгария, каждая область, города, сёла
+ │    ├─ choice_label(), subject_name()         экзамен и предмет, в сводке
  │    ├─ region_map() → colour_key()            окрашенная карта
  │    └─ region_bars() → colour_key(), signed() столбчатая диаграмма, лучшие сверху
  ├─ show_change()                  «Change since the previous year»
  │    ├─ load_choice() → read_results()
+ │    ├─ unit_word()
  │    ├─ exam_years()                           годы этого экзамена, чтобы найти прошлый
  │    ├─ load_region_map()
  │    ├─ region_gaps()                          насколько каждая область далека от среднего по стране
@@ -389,15 +467,18 @@ map_view()
  │    │    ├─ schools_in_bulgaria()
  │    │    ├─ subject_score() → weighted_average()
  │    │    └─ school_spread()                   насколько разбросаны результаты школ
+ │    ├─ exam_name(), subject_name(), region_list()   слова сводки
  │    ├─ region_map() → colour_key()            карта изменений
  │    └─ region_bars() → colour_key(), signed() столбчатая диаграмма, больше всех улучшившиеся сверху
  └─ show_trends()                  «Trends over the years»
       ├─ load_choice() → read_results()
+      ├─ unit_word(), exam_name()
       ├─ exam_years()                           все годы этого экзамена
       ├─ region_gaps()                          как выше, для каждого года
-      ├─ drift_words()                          «drifted apart», «came closer» или «about the same»
-      ├─ trend_heatmap() → colour_key(), signed(), year_labels()   сетка областей и лет
-      └─ gap_trend_chart() → year_labels()      линия разрыва между лучшей и худшей областью
+      ├─ drift_words()                          «области разошлись», «области сблизились» или «примерно так же»
+      ├─ subject_name(), region_list()          слова сводки
+      ├─ trend_heatmap() → colour_key(), signed(), year_labels(), unit_word()   сетка областей и лет
+      └─ gap_trend_chart() → year_labels(), unit_word()   линия разрыва между лучшей и худшей областью
 ```
 
 **Путь Д: вы нажимаете зелёную кнопку «Check for new results»**
@@ -418,8 +499,9 @@ check_for_new_results()
  │    │    └─ tidy_town()
  │    ├─ save_results() → open_database()    сохраняет файл в одной транзакции
  │    └─ open_database()                     записывает проверку в таблицу «checks»
- ├─ stored_files()                           обновляет список «Exam and school year»
- └─ database_status()                        новая строка «Data: ...»
+ ├─ stored_files()                           обновляет общий список файлов
+ ├─ choice_list()                            новый список «Экзамен и учебный год», на языке страницы
+ └─ database_status()                        новая строка «Данные: ...»
 ```
 
 ### Какие функции общаются с внешним миром
@@ -441,7 +523,7 @@ check_for_new_results()
 
 ### Группа 1: Маленькие помощники
 
-#### `tidy(text)`: [строка 202](../alex_school_results.py#L202)
+#### `tidy(text)`: [строка 207](../alex_school_results.py#L207)
 - **Одним предложением:** делает название удобным для сравнения с другим названием.
 - **Получает:** текст. **Возвращает:** тот же текст строчными буквами, с одиночными пробелами и без
   точки в конце.
@@ -453,7 +535,7 @@ check_for_new_results()
   точку в конце.
 - **Вызывается из:** `find_exam_datasets()`.
 
-#### `tidy_town(town)`: [строка 209](../alex_school_results.py#L209)
+#### `tidy_town(town)`: [строка 214](../alex_school_results.py#L214)
 - **Одним предложением:** делает так, чтобы один и тот же населённый пункт выглядел одинаково во
   всех файлах.
 - **Примеры:** `"ГР. СОФИЯ"` → `"ГР.СОФИЯ"` · `"Прага"` → `"ПРАГА"` ·
@@ -466,7 +548,7 @@ check_for_new_results()
      «ГР.СОФИЯ».
 - **Вызывается из:** `download_results()`, для каждой школы.
 
-#### `to_number(text)`: [строка 306](../alex_school_results.py#L306)
+#### `to_number(text)`: [строка 311](../alex_school_results.py#L311)
 - **Одним предложением:** превращает ячейку файла в число или в `None`, если результата нет.
 - **Примеры:** `"52.4"` → `52.4` · `"3,09"` → `3.09` (десятичная запятая) · `""` → `None` ·
   `"0"` → `None` (ноль значит, что этот экзамен никто не сдавал) · `"Област"` → `None`
@@ -475,7 +557,55 @@ check_for_new_results()
   `return value or None`, превращает `0` в `None`.
 - **Вызывается из:** `download_results()`, для каждой ячейки.
 
-#### `weighted_average(table, count_column, average_column)`: [строка 483](../alex_school_results.py#L483)
+Следующие пять помощников нужны для **4 языков**. Код всегда работает с английскими названиями
+(экзаменов, предметов и столбцов). Эти помощники переводят их только для того, что видите вы.
+
+#### `exam_name(exam, language)`: [строка 474](../alex_school_results.py#L474)
+- **Одним предложением:** название экзамена на языке страницы.
+- **Пример:** `exam_name("NVO 7th grade", "ru")` → `"НВО 7 класс"`
+- **Как:** просит у `translate()` ключ `"exam: NVO 7th grade"`. У каждого экзамена есть такой ключ
+  в `translations.py`.
+- **Вызывается из:** `choice_label()`, `show_change()` и `show_trends()`.
+
+#### `choice_label(choice, language)`: [строка 481](../alex_school_results.py#L481)
+- **Одним предложением:** как экзамен и год выглядят на странице, на языке страницы.
+- **Пример:** `choice_label("NVO 7th grade - 2025/2026", "ru")` → `"НВО 7 класс - 2025/2026"`
+- **Как:** `rsplit(" - ", 1)` разрезает выбор на экзамен и год. Экзамен проходит через
+  `exam_name()`; год остаётся как есть.
+- **Полезно знать:** код продолжает работать с английским вариантом выбора. Переводится только
+  подпись, которую видите вы.
+- **Вызывается из:** `choice_list()`, `show_results()`, `show_map()`, `show_change()` и
+  `check_for_new_results()`.
+
+#### `choice_list(exam_files, language)`: [строка 491](../alex_school_results.py#L491)
+- **Одним предложением:** элементы списка «Экзамен и учебный год».
+- **Возвращает:** список **пар (подпись, значение)**, например
+  `[("НВО 7 класс - 2025/2026", "NVO 7th grade - 2025/2026"), ...]`.
+- **Зачем пары:** Gradio показывает подпись (первую часть) и передаёт коду значение (вторую часть).
+  Поэтому все остальные функции по-прежнему получают английский вариант выбора, на каком бы языке
+  ни была страница.
+- **Вызывается из:** `build_language_page()` и `check_for_new_results()`.
+
+#### `subject_name(subject, language)`: [строка 499](../alex_school_results.py#L499)
+- **Одним предложением:** «Both subjects», «Bulgarian (BEL)» или «Maths / 2nd exam» на языке
+  страницы.
+- **Пример:** `subject_name("Both subjects", "ru")` → `"Оба предмета"`
+- **Как:** просит у `translate()` ключ `"subject: Both subjects"`.
+- **Вызывается из:** `build_language_page()` (подписи «Рейтинг школ по» и «Цвет по»),
+  `show_map()`, `show_change()` и `show_trends()`.
+
+#### `shown_table(table, language)`: [строка 506](../alex_school_results.py#L506)
+- **Одним предложением:** копия таблицы с названиями столбцов на языке страницы, готовая к показу.
+- **Пример:** на русской странице столбец `"BEL points"` становится `"Баллы БЕЛ"`, а `"Town"` —
+  `"Нас. пункт"`.
+- **Как:** `table.rename(columns=...)` переименовывает каждый столбец с помощью маленькой функции
+  `lambda`: она просит у `translate()` текст `"column: <название>"`. Столбец `#` сохраняет своё
+  название. Значения в таблице (названия школ и населённых пунктов, числа) не меняются.
+- **Зачем копия:** код работает с английскими названиями столбцов. Переведённые получает только
+  таблица на странице.
+- **Вызывается из:** `show_results()` и `write_overview()`.
+
+#### `weighted_average(table, count_column, average_column)`: [строка 528](../alex_school_results.py#L528)
 - **Одним предложением:** среднее значение по всем **ученикам**, а не по школам.
 - **Зачем:** школа со 100 учениками должна весить больше, чем школа с 5.
 - **Пример:** в школе А 100 учеников со средним результатом 60; в школе Б 5 учеников с 90.
@@ -486,13 +616,13 @@ check_for_new_results()
   результат для каждой школы, всё складывает и делит на общее число учеников.
 - **Вызывается из:** `rank_towns()`, `show_results()`, `write_overview()`, `subject_score()`.
 
-#### `town_label(town, region)`: [строка 495](../alex_school_results.py#L495)
+#### `town_label(town, region)`: [строка 540](../alex_school_results.py#L540)
 - **Одним предложением:** составляет текст, который показывается в списке населённых пунктов.
 - **Пример:** `town_label("ГР.ВАРНА", "ВАРНА")` → `"ГР.ВАРНА (ВАРНА)"`
 - **Зачем область:** у многих сёл одинаковые названия в разных областях.
 - **Вызывается из:** `town_choices()`.
 
-#### `split_town_label(label)`: [строка 503](../alex_school_results.py#L503)
+#### `split_town_label(label)`: [строка 548](../alex_school_results.py#L548)
 - **Одним предложением:** обратное действие к `town_label()`: снова разделяет населённый пункт и
   область.
 - **Пример:** `"ГР.ВАРНА (ВАРНА)"` → `("ГР.ВАРНА", "ВАРНА")`
@@ -507,7 +637,7 @@ check_for_new_results()
 Эти функции используются **только для заполнения или обновления базы данных**: в самый первый раз
 и когда вы нажимаете зелёную кнопку **Check for new results**.
 
-#### `call_portal(method, payload)`: [строка 223](../alex_school_results.py#L223)
+#### `call_portal(method, payload)`: [строка 228](../alex_school_results.py#L228)
 - **Одним предложением:** отправляет один вопрос порталу открытых данных (data.egov.bg) и
   возвращает его ответ.
 - **Получает:** название вопроса (`method`), например `"listResources"`, и его подробности
@@ -525,7 +655,7 @@ check_for_new_results()
   исправлять нужно будет только в одном месте.
 - **Вызывается из:** `find_exam_datasets()`, `list_exam_files()`, `download_results()`.
 
-#### `find_ministry_on_portal()`: [строка 236](../alex_school_results.py#L236)
+#### `find_ministry_on_portal()`: [строка 241](../alex_school_results.py#L241)
 - **Одним предложением:** читает страницу «Открытые данные» на mon.bg и находит идентификатор (ID)
   министерства на портале.
 - **Получает:** ничего. **Возвращает:** ID, текст вида `"a57a2273-6b21-4a7a-99ee-05ec4f67ebe4"`.
@@ -539,7 +669,7 @@ check_for_new_results()
 - **Вызывается из:** `update_database()`. Если mon.bg не работает, `update_database()` использует
   `KNOWN_MINISTRY_ID`.
 
-#### `find_exam_datasets(ministry_id)`: [строка 252](../alex_school_results.py#L252)
+#### `find_exam_datasets(ministry_id)`: [строка 257](../alex_school_results.py#L257)
 - **Одним предложением:** находит 4 набора данных об экзаменах (НВО в 4, 7 и 10 классе и ДЗИ)
   среди примерно 350 наборов министерства.
 - **Возвращает:** словарь *экзамен → ID набора*, например `{"NVO 7th grade": "b56288b6-...", ...}`
@@ -554,7 +684,7 @@ check_for_new_results()
   пара (вид, название). Здесь нужно только название, поэтому вид получает имя «не нужно» — `_`.
 - **Вызывается из:** `update_database()`.
 
-#### `list_exam_files(exam_datasets)`: [строка 282](../alex_school_results.py#L282)
+#### `list_exam_files(exam_datasets)`: [строка 287](../alex_school_results.py#L287)
 - **Одним предложением:** перечисляет годовые файлы каждого экзамена на портале и даёт каждому
   понятное имя вроде `"NVO 7th grade - 2025/2026"`.
 - **Возвращает:** словарь *«экзамен - год» → (вид, ID файла)*, например
@@ -568,7 +698,7 @@ check_for_new_results()
   4. Сортирует файлы так, чтобы самый новый год был первым.
 - **Вызывается из:** `update_database()`, которая сравнивает этот список со списком в базе.
 
-#### `download_results(kind, resource_id)`: [строка 318](../alex_school_results.py#L318)
+#### `download_results(kind, resource_id)`: [строка 323](../alex_school_results.py#L323)
 - **Одним предложением:** скачивает один файл с результатами с портала и превращает его в чистую
   таблицу, по одной строке на школу.
 - **Получает:** вид (`"nvo"` или `"dzi"`) и ID файла. **Возвращает:** таблицу со столбцами Region,
@@ -600,7 +730,7 @@ check_for_new_results()
 
 ### Группа 3: База данных
 
-#### `open_database()`: [строка 364](../alex_school_results.py#L364)
+#### `open_database()`: [строка 369](../alex_school_results.py#L369)
 - **Одним предложением:** открывает файл базы данных `school_results.db` и создаёт его вместе с
   таблицами, если их ещё нет.
 - **Возвращает:** открытое **соединение** (connection) с базой — линию, по которой Python с ней
@@ -615,7 +745,7 @@ check_for_new_results()
 - **Вызывается из:** `save_results()`, `stored_files()`, `read_results()`, `update_database()`,
   `database_status()`.
 
-#### `save_results(choice, kind, resource_id, table)`: [строка 374](../alex_school_results.py#L374)
+#### `save_results(choice, kind, resource_id, table)`: [строка 379](../alex_school_results.py#L379)
 - **Одним предложением:** сохраняет один скачанный файл с результатами в базе, заменяя его старую
   копию.
 - **Получает:** имя файла (`choice`, например `"NVO 7th grade - 2025/2026"`), его вид, его ID на
@@ -633,7 +763,7 @@ check_for_new_results()
   вставляйте значения прямо в текст SQL.
 - **Вызывается из:** `update_database()`.
 
-#### `stored_files()`: [строка 392](../alex_school_results.py#L392)
+#### `stored_files()`: [строка 397](../alex_school_results.py#L397)
 - **Одним предложением:** перечисляет все файлы с результатами в базе.
 - **Возвращает:** такой же словарь, как `list_exam_files()`: *«экзамен - год» → (вид, ID файла)*.
   Этот словарь заполняет список «Exam and school year» на странице.
@@ -643,7 +773,7 @@ check_for_new_results()
   из первой сортировки.
 - **Вызывается из:** `main()`, `update_database()`, `check_for_new_results()`.
 
-#### `read_results(choice, kind)`: [строка 409](../alex_school_results.py#L409)
+#### `read_results(choice, kind)`: [строка 414](../alex_school_results.py#L414)
 - **Одним предложением:** читает один экзамен и год из базы в виде таблицы с названиями столбцов,
   как на странице.
 - **Пример:** `read_results("NVO 7th grade - 2025/2026", "nvo")` даёт 1702 школы примерно за
@@ -655,7 +785,7 @@ check_for_new_results()
      в целые числа (`Int64`).
 - **Вызывается из:** `load_choice()`, `main()`.
 
-#### `update_database()`: [строка 426](../alex_school_results.py#L426)
+#### `update_database()`: [строка 431](../alex_school_results.py#L431)
 - **Одним предложением:** спрашивает у портала список файлов и скачивает только те, которых в базе
   ещё нет или которые министерство заменило.
 - **Возвращает:** список добавленных или заменённых файлов. Он пустой, если ничего нового нет.
@@ -669,43 +799,51 @@ check_for_new_results()
 - **Вызывается из:** `main()` (только когда база пуста) и `check_for_new_results()` (зелёная
   кнопка).
 
-#### `database_status()`: [строка 455](../alex_school_results.py#L455)
+#### `database_status(language)`: [строка 460](../alex_school_results.py#L460)
 - **Одним предложением:** пишет строку вверху страницы, например *«Data: 25 results files in the
   local database (school_results.db) · last checked on data.egov.bg: 2026-11-25 13:22»*.
+- **Получает:** язык страницы. На русской странице строка начинается с *«Данные: файлов с
+  результатами в локальной базе (school_results.db): 25…»*.
 - **Как:** задаёт базе два вопроса на SQL: `SELECT COUNT(*) FROM files` (сколько файлов) и
-  `SELECT MAX(checked_at) FROM checks` (последняя проверка). Если портал ни разу не проверяли,
-  пишет «never».
-- **Вызывается из:** `build_page()` и `check_for_new_results()`.
+  `SELECT MAX(checked_at) FROM checks` (последняя проверка). Затем `translate("data_status", …)`
+  подставляет их в текст на языке страницы. Если портал ни разу не проверяли, пишет «never» (текст
+  `"never"`, тоже в переводе: «никогда»).
+- **Вызывается из:** `build_language_page()` и `check_for_new_results()`.
 
-#### `load_choice(exam_files, choice)`: [строка 469](../alex_school_results.py#L469)
+#### `load_choice(exam_files, choice, language)`: [строка 514](../alex_school_results.py#L514)
 - **Одним предложением:** превращает то, что вы выбрали в списке «Exam and school year», в таблицу
   с результатами из базы данных — или показывает сообщение об ошибке на странице.
-- **Получает:** словарь файлов и ваш выбор, например `"DZI (matura) - 2025/2026"`.
+- **Получает:** словарь файлов, ваш выбор, например `"DZI (matura) - 2025/2026"` (всегда английское
+  значение, см. `choice_list()`), и язык страницы — для сообщений об ошибках.
   **Возвращает два значения:** вид (`"dzi"`) и таблицу.
 - **Как:**
   1. Если вашего выбора нет в словаре, выбрасывает `gr.Error(...)`, и Gradio показывает его на
-     странице как красное всплывающее сообщение.
+     странице как красное всплывающее сообщение, на языке страницы.
   2. Находит вид.
   3. Вызывает `read_results()` внутри `try:`. Если базу не удаётся прочитать, вы увидите понятное
      `gr.Error`, а не аварийную остановку программы.
-- **Вызывается из:** `town_choices()`, `show_results()`, `write_overview()`, `show_map()`.
+- **Вызывается из:** `town_choices()`, `show_results()`, `write_overview()`, `show_map()`,
+  `region_gaps()`, `show_change()` и `show_trends()`.
 
 ---
 
 ### Группа 4: Выбор и рейтинг
 
-#### `town_choices(exam_files, choice, region)`: [строка 511](../alex_school_results.py#L511)
+#### `town_choices(exam_files, choice, region, language)`: [строка 556](../alex_school_results.py#L556)
 - **Одним предложением:** составляет список населённых пунктов для выпадающего списка «Town».
-- **Возвращает:** список, который начинается с `"All towns"`, а затем идут населённые пункты в
+- **Возвращает:** список, который начинается с «All towns», а затем идут населённые пункты в
   алфавитном порядке, например `"ГР.ВАРНА (ВАРНА)"`.
+  - Первый элемент — это **пара (подпись, значение)**: подпись переведена, значение остаётся
+    английским. На русской странице это `("Все населённые пункты", "All towns")`.
+  - Сами населённые пункты на всех языках остаются на кириллице, как в данных.
 - **Почему города идут первыми:** в алфавите Г стоит раньше С, поэтому «ГР.» (города) идут раньше
   «С.» (сёл).
 - **Как:** загружает таблицу (`load_choice()`), оставляет только школы выбранной области, убирает
   повторы (`drop_duplicates()`), делает подписи (`town_label()`) и сортирует их.
-- **Вызывается из:** `build_page()` (первый список) и `refresh_towns()` (при смене экзамена или
-  области).
+- **Вызывается из:** `build_language_page()` (первый список) и `refresh_towns()` (при смене экзамена
+  или области).
 
-#### `rank_towns(table, kind, min_students)`: [строка 524](../alex_school_results.py#L524)
+#### `rank_towns(table, kind, min_students)`: [строка 570](../alex_school_results.py#L570)
 - **Одним предложением:** составляет рейтинг населённых пунктов, лучшие первыми.
 - **Возвращает:** таблицу, по одной строке на населённый пункт: `#`, Town, Region, Schools,
   Students, два средних значения и «Both subjects».
@@ -722,7 +860,7 @@ check_for_new_results()
 - **Вызывается из:** `show_results()` (место вашего населённого пункта) и `write_overview()`
   (первая пятёрка).
 
-#### `rank_schools(table, kind)`: [строка 548](../alex_school_results.py#L548)
+#### `rank_schools(table, kind)`: [строка 594](../alex_school_results.py#L594)
 - **Одним предложением:** то же, что `rank_towns()`, но для школ.
 - **Как:**
   1. Оставляет только школы, где каждый экзамен сдавали хотя бы 10 учеников
@@ -733,11 +871,11 @@ check_for_new_results()
   2. Вычисляет «Both subjects», сортирует школы и нумерует их.
 - **Вызывается из:** `write_overview()`.
 
-#### `show_results(exam_files, choice, region, town, search, rank_by)`: [строка 565](../alex_school_results.py#L565)
+#### `show_results(exam_files, choice, region, town, search, rank_by, language)`: [строка 611](../alex_school_results.py#L611)
 - **Одним предложением:** готовит всё содержимое вкладки «Schools»: сводку и таблицу.
 - **Получает:** пять ваших вариантов выбора на странице: экзамен, область, населённый пункт, текст
-  для поиска и «сортировать по». **Возвращает два значения:** сводку (текст в формате Markdown) и
-  таблицу.
+  для поиска и «сортировать по», а также язык страницы. **Возвращает два значения:** сводку (текст
+  в формате Markdown) и таблицу.
 - **Как:**
   1. **Загрузка:** получает таблицу через `load_choice()`.
   2. **Фильтр:** оставляет школы вашего населённого пункта или вашей области.
@@ -751,15 +889,22 @@ check_for_new_results()
   5. **Сводка:** число школ и средние значения (`weighted_average()`) в сравнении с областью и
      Болгарией. Если вы выбрали населённый пункт, добавляется его место в рейтинге по Болгарии и по
      его области (`rank_towns()`).
+  6. **Язык:** каждая строка сводки берётся из `translate()`. Название экзамена даёт
+     `choice_label()`. Большие целые числа пишет `whole_number()`: «Schools: 1,738» на английском,
+     «Число школ: 1 738» на русском. Средние значения на всех языках сохраняют десятичную точку,
+     например «52.40». Таблица получает переведённые названия столбцов от `shown_table()`.
+- **Пример первой строки:** `**NVO 7th grade - 2025/2026** · All regions · **Schools: 1,702**`
 - **Вызывается из:** `show()` на странице.
 
 ---
 
 ### Группа 5: Обзор от ИИ
 
-#### `ollama_problem()`: [строка 637](../alex_school_results.py#L637)
+#### `ollama_problem(language)`: [строка 686](../alex_school_results.py#L686)
 - **Одним предложением:** проверяет, готов ли ИИ: работает ли Ollama и скачана ли модель gemma4.
-- **Возвращает:** `None`, если всё в порядке («проблемы нет»), иначе — сообщение о том, что не так.
+- **Возвращает:** `None`, если всё в порядке («проблемы нет»), иначе — сообщение о том, что не так,
+  на заданном языке. `main()` просит английский (`"en"`), потому что его предупреждение выводится в
+  терминал.
 - **Как:**
   1. Спрашивает Ollama на вашем компьютере (`http://localhost:11434/api/tags`) о списке моделей.
      - **Нет ответа:** «Ollama isn't running…».
@@ -771,32 +916,40 @@ check_for_new_results()
 - **Вызывается из:** `main()` (предупреждение при запуске) и `write_overview()` (перед тем как
   обратиться к ИИ).
 
-#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students)`: [строка 653](../alex_school_results.py#L653)
+#### `overview_messages(choice, kind, area, area_averages, towns, schools, min_town_students, language)`: [строка 702](../alex_school_results.py#L702)
 - **Одним предложением:** пишет «письмо» для ИИ: наши правила плюс факты.
 - **Возвращает:** список из двух сообщений:
   - `{"role": "system", ...}`: правила из `overview_system_prompt` в начале файла.
   - `{"role": "user", ...}`: экзамен, район, средние значения и пятёрка лучших населённых пунктов и
     школ в формате JSON.
+- **Язык:** `overview_system_prompt.format(...)` заполняет три заполнителя в инструкциях:
+  - `{language}` получает английское название языка из `LANGUAGE_NAMES`, например «Russian».
+    Правило становится «Write the whole answer in Russian» (пиши весь ответ по-русски).
+  - `{towns_heading}` и `{schools_heading}` получают два заголовка в переводе, например «Лучшие
+    населённые пункты». Так в тексте ИИ те же заголовки, что и в собственном обзоре программы.
+- **Факты остаются на английском,** потому что модель лучше всего читает по-английски. Только её
+  ответ написан на языке страницы.
 - **JSON:** `json.dumps(...)` превращает таблицы в текст, который ИИ может прочитать.
   `ensure_ascii=False` сохраняет кириллицу читаемой.
 - **Вызывается из:** `write_overview()`.
 
-#### `template_overview(area, towns, schools)`: [строка 677](../alex_school_results.py#L677)
+#### `template_overview(area, towns, schools, language)`: [строка 732](../alex_school_results.py#L732)
 - **Одним предложением:** пишет обзор **без ИИ**, из тех же чисел, которые получает ИИ.
 - **Когда:** если Ollama не работает, если модель не скачана или если ИИ сломался посередине.
-- **Возвращает:** текст в формате Markdown с тем же оформлением, что у ИИ: «## Top towns»,
-  нумерованный список, «## Top schools», нумерованный список и заключительная строка, если
-  большинство лучших школ находится в одном населённом пункте.
-- **Пример строки:** `1. **ГР.ВАРНА**: 60.04, 6.75 above the area's average`
+- **Возвращает:** текст в формате Markdown на языке страницы, с тем же оформлением, что у ИИ:
+  «## Top towns», нумерованный список, «## Top schools», нумерованный список и заключительная
+  строка, если большинство лучших школ находится в одном населённом пункте.
+- **Пример строки:** `1. **ГР.ВАРНА**: 60.04, 6.75 above the area's average`. На русском:
+  `1. **ГР.ВАРНА**: 60.04, на 6.75 выше среднего значения`.
 - **Как:**
-  1. `to_dict(orient="records")` превращает каждую таблицу в список словарей, по одному на строку,
-     и f-строка пишет по одной строке для каждого.
+  1. `to_dict(orient="records")` превращает каждую таблицу в список словарей, по одному на строку.
+     `translate("town_item", …)` и `translate("school_item", …)` пишут по одной строке для каждого.
   2. `value_counts()` считает населённые пункты лучших школ. Если в одном пункте все или больше
      половины, заключительная строка говорит об этом.
 - **Полезно знать:** текст проще, чем у ИИ, но **мгновенный и всегда точный**.
 - **Вызывается из:** `write_overview()`.
 
-#### `write_overview(exam_files, choice, region)`: [строка 708](../alex_school_results.py#L708)
+#### `write_overview(exam_files, choice, region, language)`: [строка 763](../alex_school_results.py#L763)
 - **Одним предложением:** вычисляет пятёрку лучших населённых пунктов и школ, показывает их, а
   затем даёт gemma4 написать обзор слово за словом.
 - **Особенность:** это **генератор**. Он использует `yield` вместо `return`, и каждый `yield`
@@ -809,11 +962,14 @@ check_for_new_results()
      («Vs area average»).
      - **Это вычисляет код, а не ИИ**, потому что модели ИИ плохо справляются с арифметикой. В наших
        тестах gemma4 написала 13,04 вместо 14,04.
-  4. Проверяет Ollama (`ollama_problem()`). Если есть проблема, программа сама пишет обзор
+     - Текст уже на языке страницы, например «6.75 above» или «на 6.75 выше».
+  4. `shown_table()` делает копии двух таблиц с переведёнными названиями столбцов — для страницы.
+  5. Проверяет Ollama (`ollama_problem()`). Если есть проблема, программа сама пишет обзор
      (`template_overview()`) и объясняет почему.
-  5. `ollama.chat(..., stream=True)` обращается к gemma4. Каждый маленький кусочек текста
-     (**chunk**) добавляется к тексту, и более длинный текст отдаётся через `yield`.
-  6. Если что-то сломалось, пока ИИ пишет, `try`/`except` заменяет текст обзором программы и
+  6. `ollama.chat(..., stream=True)` обращается к gemma4 с сообщениями из `overview_messages()`.
+     Каждый маленький кусочек текста (**chunk**) добавляется к тексту, и более длинный текст
+     отдаётся через `yield`.
+  7. Если что-то сломалось, пока ИИ пишет, `try`/`except` заменяет текст обзором программы и
      сообщает, что пошло не так.
 - **Настройки в вызове:**
   - `temperature 0.3`: держаться фактов.
@@ -825,7 +981,7 @@ check_for_new_results()
 
 ### Группа 6: Карта и три её вида
 
-#### `schools_in_bulgaria(table)`: [строка 772](../alex_school_results.py#L772)
+#### `schools_in_bulgaria(table)`: [строка 829](../alex_school_results.py#L829)
 - **Одним предложением:** убирает школы за границей, у которых нет области на карте.
 - **Как:** в Болгарии название каждого населённого пункта начинается с «ГР.» (город) или «С.»
   (село). `str.startswith(("ГР.", "С."))` даёт `True` для таких пунктов, а область не должна быть
@@ -835,7 +991,7 @@ check_for_new_results()
   Софии.
 - **Вызывается из:** `show_map()` и `region_gaps()`.
 
-#### `subject_score(schools, kind, subject)`: [строка 781](../alex_school_results.py#L781)
+#### `subject_score(schools, kind, subject)`: [строка 838](../alex_school_results.py#L838)
 - **Одним предложением:** среднее значение группы школ по выбранному предмету, взвешенное по числу
   учеников.
 - **Получает:** группу школ (одну область, все города, все сёла или всю страну), вид экзамена и
@@ -847,7 +1003,7 @@ check_for_new_results()
   СОФИЯ-ГРАД — 60,22.
 - **Вызывается из:** `show_map()` и `region_gaps()`.
 
-#### `school_spread(schools, kind, subject)`: [строка 798](../alex_school_results.py#L798)
+#### `school_spread(schools, kind, subject)`: [строка 855](../alex_school_results.py#L855)
 - **Одним предложением:** насколько разбросаны результаты школ по выбранному предмету.
 - **Возвращает:** одно число — **стандартное отклонение**: грубо говоря, насколько обычная школа
   далека от среднего. Маленькое число значит, что у большинства школ примерно одинаковые
@@ -861,7 +1017,7 @@ check_for_new_results()
 - **Пример:** НВО 7 класс, оба предмета: 15,01 балла в 2018/2019 и 17,55 в 2025/2026.
 - **Вызывается из:** `region_gaps()`.
 
-#### `load_region_map()`: [строка 816](../alex_school_results.py#L816)
+#### `load_region_map()`: [строка 873](../alex_school_results.py#L873)
 - **Одним предложением:** читает границы 28 областей из файла `bulgaria_regions.geojson`.
 - **Возвращает:** содержимое файла в виде словаря. Для каждой области там есть название, как в
   данных (например, «ВАРНА»), код (BG-03), английское название и граница в виде списка точек.
@@ -870,7 +1026,7 @@ check_for_new_results()
   domain); оставлена только Болгария (66 КБ).
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `colour_key(values, zero_label)`: [строка 824](../alex_school_results.py#L824)
+#### `colour_key(values, zero_label)`: [строка 881](../alex_school_results.py#L881)
 - **Одним предложением:** вычисляет цветовую шкалу для набора чисел выше и ниже 0: два её конца и
   подписи её легенды.
 - **Получает:** числа (столбец таблицы) и текст для середины легенды, например «0 = average» или
@@ -886,7 +1042,7 @@ check_for_new_results()
   «0 = average», «+7», «+13».
 - **Вызывается из:** `region_map()`, `region_bars()` и `trend_heatmap()`.
 
-#### `signed(value, decimals=2)`: [строка 840](../alex_school_results.py#L840)
+#### `signed(value, decimals=2)`: [строка 897](../alex_school_results.py#L897)
 - **Одним предложением:** пишет число со знаком, например «+2.14» или «−4.99», для чисел на
   диаграммах.
 - **`decimals=2`:** параметр со **значением по умолчанию**. Если его не передать, он равен 2.
@@ -897,13 +1053,13 @@ check_for_new_results()
   даёт «0.0».
 - **Вызывается из:** `region_bars()` и `trend_heatmap()`.
 
-#### `year_labels(years)`: [строка 849](../alex_school_results.py#L849)
+#### `year_labels(years)`: [строка 906](../alex_school_results.py#L906)
 - **Одним предложением:** пишет учебные годы в две строки, например «2018/» над «2019», чтобы они
   помещались под узкими столбцами диаграмм тенденций и не были наклонены.
 - **Как:** `year.replace("/", "/<br>")`. В подписях Plotly `<br>` означает «новая строка».
 - **Вызывается из:** `trend_heatmap()` и `gap_trend_chart()`.
 
-#### `region_map(regions, borders, column, key_title, zero_label)`: [строка 857](../alex_school_results.py#L857)
+#### `region_map(regions, borders, column, key_title, zero_label)`: [строка 914](../alex_school_results.py#L914)
 - **Одним предложением:** рисует карту, окрашивая каждую область по числам из одного столбца
   таблицы: её отличию от среднего по стране или тому, насколько это отличие изменилось.
 - **Получает:** таблицу областей, границы, столбец, по которому окрашивать (`"Vs Bulgaria"` или
@@ -922,7 +1078,7 @@ check_for_new_results()
   по разным столбцам, поэтому они используют эту функцию вместе, а не две её копии.
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `region_bars(regions, column, axis_title)`: [строка 885](../alex_school_results.py#L885)
+#### `region_bars(regions, column, axis_title)`: [строка 942](../alex_school_results.py#L942)
 - **Одним предложением:** те же 28 областей в виде столбчатой диаграммы, самые высокие значения
   сверху, с точным числом каждой области, написанным рядом с её столбцом.
 - **Зачем:** карта хорошо показывает, *где*, а столбцы — *насколько*. Написанные числа (например,
@@ -936,10 +1092,18 @@ check_for_new_results()
      рисует первую строку внизу.
 - **Вызывается из:** `show_map()` и `show_change()`.
 
-#### `show_map(exam_files, choice, subject)`: [строка 920](../alex_school_results.py#L920)
+#### `unit_word(kind, language)`: [строка 977](../alex_school_results.py#L977)
+- **Одним предложением:** единица измерения результатов экзамена на языке страницы: «points» для
+  НВО, «grade» для ДЗИ.
+- **Пример:** `unit_word("nvo", "ru")` → `"баллов"`
+- **Как:** просит у `translate()` `"unit_points"` или `"unit_grade"`, в зависимости от вида.
+- **Вызывается из:** `show_map()`, `show_change()`, `show_trends()`, `trend_heatmap()` и
+  `gap_trend_chart()`.
+
+#### `show_map(exam_files, choice, subject, language)`: [строка 984](../alex_school_results.py#L984)
 - **Одним предложением:** готовит всё содержимое вкладки «Map and trends of the regions»: сводку различий,
   карту и столбчатую диаграмму.
-- **Получает:** выбранный экзамен и год, а также предмет из «Colour by». **Возвращает три
+- **Получает:** выбранный экзамен и год, предмет из «Colour by» и язык страницы. **Возвращает три
   значения:** текст сводки, карту и столбчатую диаграмму.
 - **Как:**
   1. Загружает таблицу (`load_choice()`) и убирает школы за границей (`schools_in_bulgaria()`).
@@ -947,15 +1111,19 @@ check_for_new_results()
      останавливается с ошибкой.
   3. Вычисляет среднее по стране и среднее каждой области через `subject_score()` — по одной
      области за раз благодаря `groupby("Region")` — и разницу для каждой области («Vs Bulgaria»).
-  4. Сортирует области и пишет для каждой текст `"Hover"` с её английским названием из файла
-     границ. Находит лучшую и худшую область и сравнивает города («ГР.») с сёлами («С.»).
+  4. Сортирует области и пишет для каждой текст `"Hover"`. Название области остаётся на кириллице.
+     На страницах латиницей (английской и румынской) к нему добавляется ещё английское название из
+     файла границ, например «ВАРНА (Varna)». Находит лучшую и худшую область и сравнивает города
+     («ГР.») с сёлами («С.»).
   5. Рисует карту (`region_map()`) и столбцы (`region_bars()`), обе окрашены по столбцу
      «Vs Bulgaria».
+  6. Все слова — на языке страницы: единица от `unit_word()`, экзамен от `choice_label()`, предмет
+     от `subject_name()`, а остальное от `translate()`.
 - **Пример сводки:** «Best region: СОФИЯ-ГРАД 60.22 (+13.34) · worst region: СЛИВЕН 33.43 (−13.45)
   · gap: 26.79 points», затем «Cities (ГР.): 49.68 · villages (С.): 30.95 · gap: 18.73 points».
 - **Вызывается из:** `map_view()` на странице, для вида «Difference from Bulgaria».
 
-#### `exam_years(exam_files, choice)`: [строка 969](../alex_school_results.py#L969)
+#### `exam_years(exam_files, choice)`: [строка 1041](../alex_school_results.py#L1041)
 - **Одним предложением:** находит все годы выбранного экзамена, от самого старого.
 - **Как:** выбор выглядит как «NVO 7th grade - 2025/2026». `rsplit(" - ", 1)` разрезает его по
   **последнему** « - » на экзамен («NVO 7th grade») и год. Функция оставляет файлы того же экзамена
@@ -964,11 +1132,12 @@ check_for_new_results()
   «NVO 7th grade - 2018/2019» до «NVO 7th grade - 2025/2026».
 - **Вызывается из:** `show_change()` и `show_trends()`.
 
-#### `region_gaps(exam_files, choices, subject)`: [строка 978](../alex_school_results.py#L978)
+#### `region_gaps(exam_files, choices, subject, language)`: [строка 1050](../alex_school_results.py#L1050)
 - **Одним предложением:** для каждого из заданных лет экзамена — насколько каждая область далека от
   среднего по стране в том же году.
-- **Получает:** файлы, список вариантов выбора (2 года для изменения, все годы для тенденций) и
-  предмет. **Возвращает три значения:** таблицу, где одна строка — это область, а один столбец —
+- **Получает:** файлы, список вариантов выбора (2 года для изменения, все годы для тенденций),
+  предмет и язык страницы (только для сообщений об ошибках `load_choice()`). **Возвращает три
+  значения:** таблицу, где одна строка — это область, а один столбец —
   учебный год; средние по стране; и то, насколько разбросаны были результаты школ в каждом году
   (`school_spread()`). Третье значение `show_change()` не нужно, поэтому там вместо него
   написано `_`.
@@ -983,7 +1152,16 @@ check_for_new_results()
   хуже. Расстояние области от среднего по стране убирает этот эффект, и годы можно сравнивать.
 - **Вызывается из:** `show_change()` и `show_trends()`.
 
-#### `show_change(exam_files, choice, subject)`: [строка 999](../alex_school_results.py#L999)
+#### `region_list(regions_and_changes, language)`: [строка 1071](../alex_school_results.py#L1071)
+- **Одним предложением:** пишет несколько областей с их изменениями, для одной строки сводки.
+- **Получает:** пары (область, изменение) и язык страницы.
+- **Пример:** `"**ДОБРИЧ** +2.14, **ПЕРНИК** +1.76"`. Если областей нет, возвращает «none» на языке
+  страницы — на русской странице это «нет».
+- **Как:** f-строка пишет каждую пару, а `", ".join(...)` ставит между ними запятые. Пустой список
+  даёт пустой текст, и тогда `or` выбирает вместо него переведённое «нет».
+- **Вызывается из:** `show_change()` и `show_trends()`.
+
+#### `show_change(exam_files, choice, subject, language)`: [строка 1079](../alex_school_results.py#L1079)
 - **Одним предложением:** готовит вид «Change since the previous year»: насколько каждая область
   сдвинулась относительно среднего по стране по сравнению с прошлым годом.
 - **Возвращает три значения,** как `show_map()`: сводку, карту и столбчатую диаграмму.
@@ -995,6 +1173,8 @@ check_for_new_results()
      «сейчас» минус «раньше».
   4. Пишет сводку и рисует карту и столбцы через `region_map()` и `region_bars()`, окрашенные по
      столбцу «Change».
+  5. Сводка написана на языке страницы: экзамен от `exam_name()`, предмет от `subject_name()`,
+     единица от `unit_word()`, а списки областей от `region_list()`.
 - **Сводка:** 3 области, которые улучшились больше всех, и 3, которые больше всех отстали;
   **типичный сдвиг** (медиана изменений без учёта знака); и то, как изменилось среднее по самой
   Болгарии.
@@ -1002,7 +1182,7 @@ check_for_new_results()
   больше всех отстала ЯМБОЛ −4,99, типичный сдвиг — 0,98 балла.
 - **Вызывается из:** `map_view()` на странице.
 
-#### `show_trends(exam_files, choice, subject)`: [строка 1044](../alex_school_results.py#L1044)
+#### `show_trends(exam_files, choice, subject, language)`: [строка 1126](../alex_school_results.py#L1126)
 - **Одним предложением:** готовит вид «Trends over the years»: расстояние каждой области от среднего
   по стране в каждом году выбранного экзамена.
 - **Возвращает три значения:** сводку, сетку областей и лет (`trend_heatmap()`) и линейную диаграмму
@@ -1018,25 +1198,33 @@ check_for_new_results()
      описывает её изменение словами.
   5. Сравнивает последний год каждой области с её первым годом, чтобы найти, кто догнал, а кто
      отстал. Сводка предупреждает, что при этом используются только эти два года.
+  6. Как и `show_change()`, пишет сводку на языке страницы — с помощью `exam_name()`,
+     `subject_name()`, `unit_word()` и `region_list()`. Вид экзамена и язык она передаёт дальше двум
+     диаграммам.
 - **Пример:** НВО 7 класс, оба предмета: разрыв вырос с 20,58 балла в 2018/2019 до 26,79 в
   2025/2026 (+30%). По сравнению с разбросом он вырос с 1,37 до 1,53 (+12%): области действительно
   разошлись, но меньше, чем кажется по баллам. 20 областей были ниже среднего по стране в каждом
   году.
 - **Вызывается из:** `map_view()` на странице.
 
-#### `drift_words(change)`: [строка 1089](../alex_school_results.py#L1089)
+#### `drift_words(change, language)`: [строка 1168](../alex_school_results.py#L1168)
 - **Одним предложением:** описывает словами изменение разрыва (по сравнению с разбросом): «the
   regions drifted apart» (области разошлись), «the regions came closer» (области сблизились) или
-  «about the same» (примерно так же).
-- **Как:** два `if`. Изменение меньше 0,05 в любую сторону считается «about the same», потому что
+  «about the same» (примерно так же), на языке страницы.
+- **Как:** два `if` выбирают один из трёх ключей перевода (`"drift_apart"`, `"drift_closer"` или
+  `"drift_same"`). Изменение меньше 0,05 в любую сторону считается «about the same», потому что
   оно слишком маленькое, чтобы что-то значить.
 - **Пример:** разрыв в 10 классе вырос на 1,07 балла, но по сравнению с разбросом он уменьшился с
-  1,28 до 1,21, поэтому `drift_words(-0.07)` даёт «the regions came closer».
+  1,28 до 1,21, поэтому `drift_words(-0.07, "en")` даёт «the regions came closer», а
+  `drift_words(-0.07, "ru")` даёт «области сблизились».
 - **Вызывается из:** `show_trends()`.
 
-#### `trend_heatmap(gaps, unit)`: [строка 1101](../alex_school_results.py#L1101)
+#### `trend_heatmap(gaps, kind, language)`: [строка 1180](../alex_school_results.py#L1180)
 - **Одним предложением:** рисует сетку, где одна строка — это область, а один столбец — учебный год;
   каждая клетка окрашена по расстоянию области от среднего по стране, и в ней написано число.
+- **Получает:** таблицу расстояний из `region_gaps()`, вид экзамена (`"nvo"` или `"dzi"`) и язык
+  страницы. По виду она получает единицу (`unit_word()`) и число знаков после запятой: один для
+  баллов, два для оценок. Заголовок легенды и текст всплывающей подсказки берутся из `translate()`.
 - **Как:**
   1. `go.Heatmap(...)` — это сетка окрашенных клеток в Plotly, с теми же цветами и той же шкалой,
      что и карта (`colour_key()`).
@@ -1046,11 +1234,12 @@ check_for_new_results()
      `year_labels()`.
 - **Вызывается из:** `show_trends()`.
 
-#### `gap_trend_chart(spread, relative, unit)`: [строка 1136](../alex_school_results.py#L1136)
+#### `gap_trend_chart(spread, relative, kind, language)`: [строка 1219](../alex_school_results.py#L1219)
 - **Одним предложением:** линейная диаграмма разрыва между лучшей и худшей областью, год за годом.
   Линия, которая идёт вверх, значит, что области расходятся.
 - **Получает:** разрывы в баллах или оценках (`spread`), те же разрывы, делённые на разброс
-  результатов школ (`relative`), и единицу измерения.
+  результатов школ (`relative`), вид экзамена и язык страницы. `unit_word()` превращает вид в
+  единицу измерения, например «points» или «баллов».
 - **Как:**
   1. `go.Scatter(mode="lines+markers+text")` рисует линию с точками. Число написано только у первого
      и последнего года, чтобы линию было легко читать.
@@ -1064,33 +1253,54 @@ check_for_new_results()
 
 ### Группа 7: Веб-страница и запуск
 
-#### `build_page(exam_files, regions)`: [строка 1170](../alex_school_results.py#L1170)
-- **Одним предложением:** строит веб-страницу (списки, кнопки, вкладки, таблицы) и решает, какая
-  функция запустится, когда вы что-то нажмёте или измените.
-- **Получает:** словарь файлов и список областей. **Возвращает:** страницу, которую затем открывает
-  `main()`.
+#### `language_buttons(language)`: [строка 1255](../alex_school_results.py#L1255)
+- **Одним предложением:** делает 4 синие кнопки языков рядом с заголовком: EN, BG, RU и RO.
+- **Получает:** язык страницы. **Возвращает:** кусочек HTML, который `gr.HTML(...)` ставит на
+  страницу.
 - **Как:**
-  1. Создаёт маленькие **вложенные функции**: `show`, `overview`, `refresh_towns`, `map_view`,
-     `difference_view`, `change_view`, `trends_view` и `check_for_new_results`. Они помнят
-     `exam_files`, поэтому Gradio нужно передать им только ваш выбор.
-  2. `with gr.Blocks(...) as page:` означает, что всё, что написано ниже с отступом, становится
-     частью страницы. `gr.Row()` ставит элементы рядом; `gr.Tabs()` и `gr.Tab()` создают три
-     вкладки.
-  3. **Цвета кнопок** задаются через CSS, переданный в `gr.Blocks(css=...)`:
-     - `elem_id="check-button"` даёт зелёной кнопке имя, а правило
-       `#check-button { background: #1a7f37 … }` окрашивает только эту кнопку. Белый текст на этом
-       зелёном имеет контраст 5,1:1, поэтому легко читается.
-     - `elem_classes="grey-button"` объединяет остальные кнопки в группу, а правило `.grey-button`
-       делает их все светло-серыми (тёмный текст на `#e9e9e7`, контраст 13,6:1).
-     - `gr.Tabs(elem_id="main-tabs")` даёт имя полосе вкладок, а ещё два правила делают названия трёх
-       вкладок выровненными по центру, жирными (`font-weight: 700`) и на два размера крупнее
-       (`--text-xl`, 22px, вместо обычного `--text-md`, 14px). `flex-wrap: wrap` позволяет им перейти
-       на вторую строку в узком окне: иначе вкладки по центру обрезались бы с обеих сторон.
-  4. **`gr.State("difference")`** запоминает, какой из трёх видов карты вы выбрали последним. Он не
+  1. Цикл проходит по `LANGUAGES`, в порядке кнопок.
+  2. Каждая кнопка — это **ссылка** (`<a href="...">`) на страницу своего языка: `/` для
+     болгарского (`FIRST_LANGUAGE`), `/en`, `/ru` и `/ro` для остальных.
+  3. Язык самой страницы получает `class="current"`, который CSS делает темнее и подчёркивает, и
+     `aria-current="page"`, который сообщает программам чтения с экрана: «это страница, на которой
+     вы находитесь».
+  4. `<nav aria-label="Language">` объединяет 4 ссылки в одно меню.
+- **Пример:** на русской странице кнопка RU тёмно-синяя и подчёркнутая, а остальные три — светлее.
+- **Вызывается из:** `build_language_page()`.
+
+#### `build_language_page(page, exam_files, regions, language)`: [строка 1268](../alex_school_results.py#L1268)
+- **Одним предложением:** строит версию веб-страницы на одном языке (списки, кнопки, вкладки,
+  таблицы) и решает, какая функция запустится, когда вы что-то нажмёте или измените.
+- **Получает:** приложение, в котором лежат все 4 страницы (`page`), словарь файлов, список
+  областей и язык. **Возвращает:** ничего: всё, что она создаёт, сразу попадает в приложение.
+  `build_app()` вызывает её 4 раза, по разу для каждого языка.
+- **Как:**
+  1. Создаёт маленькие **вложенные функции**: `api`, `show`, `overview`, `refresh_towns`,
+     `map_view`, `difference_view`, `change_view`, `trends_view` и `check_for_new_results`. Они
+     помнят `exam_files` и `language`, поэтому Gradio нужно передать им только ваш выбор.
+  2. Всё, что она создаёт, создаётся внутри блока `with` в `build_app()`, поэтому становится частью
+     той страницы. `gr.Row()` ставит элементы рядом; `gr.Tabs()` и `gr.Tab()` создают три вкладки.
+  3. **Каждый текст берётся из `translate()`,** на языке страницы: заголовок, вступление, подписи,
+     кнопки и вкладки.
+  4. **Строка заголовка:** заголовок слева, а справа — узкая колонка
+     (`gr.Column(scale=0, min_width=260)`) с кнопками языков из `language_buttons()`.
+  5. **Списки используют пары (подпись, значение):** «Экзамен и учебный год» получает
+     `choice_list()`, первый элемент «Область» — это `(переведённое "All regions", "All regions")`,
+     а «Рейтинг школ по» и «Цвет по» получают `(subject_name(value), value)`. Так страница
+     показывает переведённые слова, а код по-прежнему получает английские значения.
+  6. **Цвета кнопок:** `elem_id="check-button"` даёт зелёной кнопке имя, а
+     `elem_classes="grey-button"` объединяет остальные кнопки в группу. Правила CSS, которые их
+     окрашивают, находятся в `build_app()`. `gr.Tabs(elem_id="main-tabs")` даёт имя полосе вкладок
+     по той же причине.
+  7. **`gr.State("difference")`** запоминает, какой из трёх видов карты вы выбрали последним. Он не
      рисуется на странице: это маленькая память, своя для каждого посетителя.
-  5. Связывает **события**: `элемент.событие(функция, входы, выходы)` означает «когда это
+  8. Связывает **события**: `элемент.событие(функция, входы, выходы)` означает «когда это
      произойдёт, вызови эту функцию со значениями этих входов и помести её результаты в эти
      выходы». `.then(...)` означает «после этого сделай ещё и это».
+  9. **Имена API:** Gradio также предлагает некоторые события другим программам, по имени (это его
+     **API**). У двух событий не может быть одинакового имени, а события на 4 страницах одинаковые.
+     Поэтому `api_name=api("show")` даёт «show» на болгарской странице, «show_en» на английской и
+     так далее. Остальные события получают `api_name=False`: они вообще не предлагаются.
 
 | Когда вы… | Gradio вызывает |
 |---|---|
@@ -1102,16 +1312,22 @@ check_for_new_results()
 | открываете вкладку «Map and trends of the regions», меняете экзамен или «Colour by» | `map_view()` с видом, который вы выбрали последним |
 | нажимаете «Difference from Bulgaria», «Change since the previous year» или «Trends over the years» | `difference_view()`, `change_view()` или `trends_view()`, которые вызывают `map_view()` |
 | нажимаете зелёную кнопку «Check for new results» | `check_for_new_results()` |
+| нажимаете EN, BG, RU или RO | никакую функцию: кнопка — это ссылка, и браузер открывает страницу этого языка |
 
-- **Вложенные функции** (созданы внутри `build_page()`):
-  - `show(choice, region, town, search, rank_by)` вызывает `show_results(exam_files, …)`.
-  - `overview(choice, region)` вызывает `write_overview(exam_files, …)`. `yield from` передаёт
-    дальше каждое обновление, поэтому это тоже генератор.
+- **Вложенные функции** (созданы внутри `build_language_page()`):
+  - `api(name)` даёт имя события в API: `name` на болгарской странице, `name_en`, `name_ru` или
+    `name_ro` на остальных.
+  - `show(choice, region, town, search, rank_by)` вызывает `show_results(exam_files, …, language)`.
+  - `overview(choice, region)` вызывает `write_overview(exam_files, …, language)`. `yield from`
+    передаёт дальше каждое обновление, поэтому это тоже генератор.
   - `refresh_towns(choice, region, current_town)` вызывает `town_choices()` и возвращает новый
-    выпадающий список. Если выбранный вами пункт всё ещё есть в списке, он сохраняется.
+    выпадающий список. Если выбранный вами пункт всё ещё есть в списке, он сохраняется. Первый
+    элемент списка — пара (подпись, значение), поэтому функция сравнивает ваш пункт только со
+    **значениями**.
   - `map_view(choice, subject, view)` вызывает `show_map()`, `show_change()` или `show_trends()` — в
-    зависимости от вида. Возвращает вид (для `gr.State`), сводку, две диаграммы с их названиями и
-    три кнопки, причём на выбранной стоит галочка «✓». Карта рисуется, когда вы открываете её
+    зависимости от вида. Возвращает вид (для `gr.State`), сводку, две диаграммы с их переведёнными
+    названиями и три кнопки, причём на выбранной стоит галочка «✓». Надписи кнопок — это тексты
+    `"view_<название>"` для каждого названия из `MAP_VIEWS`. Карта рисуется, когда вы открываете её
     вкладку, потому что диаграмма, нарисованная в скрытой вкладке, может получиться неправильного
     размера.
   - `difference_view`, `change_view` и `trends_view` занимают по одной строке: они вызывают
@@ -1119,10 +1335,11 @@ check_for_new_results()
     каждой кнопки своя маленькая функция.
   - `check_for_new_results(current_choice)` — тоже генератор:
     1. Сначала показывает «Checking data.egov.bg…», затем вызывает `update_database()`.
-    2. Заново заполняет общий словарь `exam_files` (`clear()`, затем `update()`), чтобы каждая
-       часть страницы видела новые годы.
-    3. Возвращает новую строку «Data» (`database_status()`) и новый список «Exam and school year»,
-       сохраняя ваш текущий выбор.
+    2. Заново заполняет общий словарь `exam_files` (`clear()`, затем `update()`). Все 4 страницы
+       используют один и тот же словарь, поэтому каждая часть каждой страницы видит новые годы.
+    3. Возвращает новую строку «Data» (`database_status()`) и новый список «Exam and school year»
+       (`choice_list()`), сохраняя ваш текущий выбор. Названия новых файлов даёт
+       `choice_label()`.
     4. Если проверка не удалась, например без интернета, показывает ошибку.
   - `show_schools_tab()` возвращает `gr.Tabs(selected="schools")`, то есть «перейди на вкладку
     Schools».
@@ -1133,20 +1350,52 @@ check_for_new_results()
   - Список населённых пунктов использует `.input`, чтобы результаты не показывались дважды, когда
     `refresh_towns()` сбрасывает выбранный пункт.
 
-#### `main()`: [строка 1351](../alex_school_results.py#L1351)
-- **Одним предложением:** точка запуска: готовит данные из базы, строит страницу и открывает её в
-  браузере.
+#### `build_app(exam_files, regions)`: [строка 1434](../alex_school_results.py#L1434)
+- **Одним предложением:** строит всё приложение: болгарскую страницу по простому адресу, а
+  английскую, русскую и румынскую — по адресам `/en`, `/ru` и `/ro`.
+- **Получает:** словарь файлов и список областей. **Возвращает:** приложение, которое затем
+  открывает `main()`.
+- **Как:**
+  1. `with gr.Blocks(...) as app:` создаёт приложение, а `build_language_page(app, …, "bg")`
+     заполняет его главную страницу на болгарском (`FIRST_LANGUAGE`). Заголовок вкладки браузера —
+     болгарский заголовок.
+  2. Цикл проходит по остальным языкам. Для каждого `with app.route("EN", "/en"):` добавляет
+     **маршрут**: ещё одну страницу по своему адресу. `build_language_page()` заполняет её на этом
+     языке.
+  3. **CSS** (цвета и размеры страницы), переданный в `gr.Blocks(css=...)`:
+     - `#check-button` окрашивает зелёную кнопку: белый текст на `#1a7f37` имеет контраст 5,1:1,
+       поэтому легко читается. Когда над ней мышь, она становится темнее (`#116329`).
+     - `.grey-button` делает остальные кнопки светло-серыми (тёмный текст на `#e9e9e7`, контраст
+       13,6:1).
+     - Три правила `#main-tabs` делают названия трёх вкладок выровненными по центру, жирными
+       (`font-weight: 700`) и на два размера крупнее (`--text-xl`, 22px, вместо обычного
+       `--text-md`, 14px). `flex-wrap: wrap` позволяет им перейти на вторую строку в узком окне:
+       иначе вкладки по центру обрезались бы с обеих сторон.
+     - `.language-buttons` делает ссылки языков похожими на синие кнопки: белый текст на `#0b5cad`
+       (контраст 6,7:1). Текущий язык (`a.current`) темнее, `#073d73` (10,9:1), и подчёркнут, так
+       что его видно даже без цветов.
+     - `.nav-holder { display: none }` скрывает собственное меню страниц Gradio в самом верху. Его
+       работу делают кнопки языков.
+- **Вызывается из:** `main()`.
+
+#### `main()`: [строка 1476](../alex_school_results.py#L1476)
+- **Одним предложением:** точка запуска: готовит данные из базы, строит приложение и открывает его
+  в браузере.
 - **Как:**
   1. `sys.stdout.reconfigure(...)` позволяет терминалу Windows печатать кириллицу.
-  2. `stored_files()` читает список файлов в базе.
-  3. **Если база пуста** (самый первый запуск или файл удалили), `update_database()` заполняет её
+  2. `missing_translations()` проверяет, что каждый текст есть на всех 4 языках. Если какого-то
+     нет, печатает, каких именно, и останавливается — раньше всего остального.
+  3. `stored_files()` читает список файлов в базе.
+  4. **Если база пуста** (самый первый запуск или файл удалили), `update_database()` заполняет её
      из интернета, один раз, примерно за минуту. Затем снова `stored_files()`.
-  4. `read_results()` для первого файла — только чтобы собрать названия областей.
-  5. `build_page()`.
-  6. Если что-то пошло не так, программа печатает одно понятное сообщение и останавливается через
+  5. `read_results()` для первого файла — только чтобы собрать названия областей.
+  6. `build_app()` строит 4 страницы.
+  7. Если что-то пошло не так, программа печатает одно понятное сообщение и останавливается через
      `sys.exit(1)`. `1` — это код «ошибка».
-  7. Предупреждает, если какого-то экзамена нет или если ИИ не готов (`ollama_problem()`).
-  8. `page.launch(inbrowser=True)` запускает веб-сервер и открывает браузер.
+  8. Предупреждает, если какого-то экзамена нет или если ИИ не готов (`ollama_problem("en")`:
+     сообщения в терминале — на английском).
+  9. `page.launch(inbrowser=True)` запускает веб-сервер и открывает браузер, на болгарской
+     странице.
 - **Интернет не нужен:** когда в базе есть данные, при запуске ничего не скачивается.
 - **Две последние строки файла:** `if __name__ == "__main__": main()` означает «запускай `main()`,
   только когда этот файл **запущен** напрямую (`uv run …`), а не когда его **импортирует** другой
@@ -1154,14 +1403,86 @@ check_for_new_results()
 
 ---
 
+### Группа 8: Тексты на 4 языках ([translations.py](../translations.py))
+
+Все тексты, которые показывает страница, лежат в этом втором файле, на 4 языках. Главный скрипт
+просит текст по его **ключу перевода** и языку страницы. В файле есть:
+
+| Имя | Что это |
+|---|---|
+| `LANGUAGES` | 4 кода языков и надписи их кнопок, в порядке кнопок: `"en": "EN"`, `"bg": "BG"`, `"ru": "RU"`, `"ro": "RO"` |
+| `FIRST_LANGUAGE` | `"bg"`: язык страницы по простому адресу, http://127.0.0.1:7860 |
+| `LANGUAGE_NAMES` | Название каждого языка по-английски, например `"ru": "Russian"`, чтобы сказать ИИ, на каком языке писать |
+| `TEXTS` | Словарь из 137 текстов. У каждого ключа, например `"check_button"`, есть маленький словарь с одним и тем же текстом на 4 языках |
+
+**Что остаётся одинаковым на всех языках:**
+- Названия школ, населённых пунктов и областей остаются на кириллице, как в данных. Они никогда не
+  переводятся.
+- Числа с дробной частью сохраняют точку, например «52.40», как на диаграммах.
+- Факты, которые отправляются ИИ, остаются на английском; только его ответ написан на языке
+  страницы.
+
+**Как изменить или добавить текст:**
+1. Найдите его ключ в `TEXTS`. Например, зелёная кнопка — это `"check_button"`.
+2. Чтобы **изменить** текст, измените его на всех 4 языках. Каждое `{имя}` в фигурных скобках
+   оставьте как есть: их заполняет код. Их можно переставить в другое место предложения.
+3. Чтобы **добавить** текст, добавьте новый ключ со всеми 4 языками (`"en"`, `"bg"`, `"ru"`,
+   `"ro"`), а затем используйте его в коде через `translate("ваш_ключ", language)`.
+4. Перезапустите программу. Если какого-то языка не хватает, `missing_translations()` остановит её
+   с сообщением, в котором сказано, какого именно.
+
+#### `translate(key, language, **values)`: [строка 870](../translations.py#L870)
+- **Одним предложением:** даёт текст с именем `key` на выбранном языке, с заполненными
+  заполнителями.
+- **Примеры:** `translate("region_name", "en", region="ВАРНА")` → `"ВАРНА region"` ·
+  `translate("region_name", "ru", region="ВАРНА")` → `"область ВАРНА"` ·
+  `translate("never", "ru")` → `"никогда"`
+- **`**values`:** две звёздочки собирают все именованные значения, которые вы передаёте, например
+  `region="ВАРНА"`, в словарь. Функция с `**values` может принять столько таких значений, сколько ей
+  нужно.
+- **Как:**
+  1. `TEXTS[key][language]` находит текст: сначала ключ, затем язык.
+  2. `text.format(**values)` заполняет каждое `{имя}` его значением.
+  3. Заполняет их, только если значения есть. Некоторые тексты используются во всплывающих
+     подсказках Plotly, а у Plotly есть свои коды в фигурных скобках, например `%{x}`, которые
+     трогать нельзя.
+- **Вызывается из:** почти каждой функции главного скрипта, которая показывает текст.
+
+#### `whole_number(number, language)`: [строка 880](../translations.py#L880)
+- **Одним предложением:** пишет целое число, разделяя тысячи.
+- **Примеры:** `whole_number(53739, "en")` → `"53,739"` · `whole_number(53739, "ru")` → `"53 739"`
+- **Почему пробел:** в болгарском, русском и румынском запятая — это **десятичная** запятая, поэтому
+  «53,739» прочитали бы как 53,739 — то есть чуть больше пятидесяти трёх. Пробел нельзя понять
+  неправильно.
+- **Как:** `f"{int(number):,}"` пишет число с запятыми; для всех языков, кроме английского,
+  `.replace(",", " ")` превращает их в пробелы.
+- **Вызывается из:** `show_results()` (число школ и учеников).
+
+#### `missing_translations()`: [строка 889](../translations.py#L889)
+- **Одним предложением:** перечисляет тексты, которых не хватает на каком-то языке.
+- **Возвращает:** список вида `["intro (ro)"]` или пустой список `[]`, если всё на месте.
+- **Как:** одно **списковое включение** (list comprehension — цикл, написанный внутри `[ ]`)
+  проходит по каждому ключу, а для каждого ключа — по каждому языку из `LANGUAGES`.
+  `texts.get(language)` даёт `None`, если языка нет; тогда `not` даёт истину, и ключ попадает в
+  список. Пустой текст `""` тоже считается отсутствующим.
+- **Вызывается из:** `main()`, раньше всего остального.
+
+---
+
 ## 6. Советы для изучения кода
 
-- **Проверьте функцию отдельно.** Запустите это из папки проекта (`-X utf8` помогает терминалу
+- **Проверьте функцию отдельно.** Запустите это из папки `education_bulgaria`, потому что скрипт
+  импортирует `translations.py` из той папки, в которой вы находитесь (`-X utf8` помогает терминалу
   правильно печатать кириллицу):
   ```
-  uv run python -X utf8 -c "from education_bulgaria.alex_school_results import tidy_town, to_number; print(tidy_town('ГР. СОФИЯ'), to_number('3,09'), to_number(''))"
+  uv run python -X utf8 -c "from alex_school_results import tidy_town, to_number; print(tidy_town('ГР. СОФИЯ'), to_number('3,09'), to_number(''))"
   ```
   Программа напечатает: `ГР.СОФИЯ 3.09 None`
+- **Проверьте текст на другом языке** из той же папки:
+  ```
+  uv run python -X utf8 -c "from translations import translate, whole_number; print(translate('check_button', 'ru'), whole_number(53739, 'ru'))"
+  ```
+  Программа напечатает: `Проверить новые результаты 53 739`
 - **Загляните в базу данных** одной строкой SQL из папки проекта:
   ```
   uv run python -X utf8 -c "import sqlite3; db = sqlite3.connect('education_bulgaria/school_results.db'); print(db.execute('SELECT choice, COUNT(*) FROM results GROUP BY choice ORDER BY choice LIMIT 3').fetchall())"

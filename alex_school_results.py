@@ -57,7 +57,9 @@ import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
 
-# The page's texts in 4 languages, from translations.py next to this script
+# The page's texts in 4 languages, from translations.py next to this script. Python must look
+# for it in this script's folder, also when the script is used from another folder
+sys.path.insert(0, str(Path(__file__).parent))
 from translations import FIRST_LANGUAGE, LANGUAGE_NAMES, LANGUAGES, missing_translations, translate, whole_number
 
 
